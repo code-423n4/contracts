@@ -4,7 +4,10 @@
   "description": "Code 423n4 Genesis DAO",
   "main": "hardhat.config.ts",
   "scripts": {
-    "test": "yarn test"
+    "test": "yarn test",
+    "compile": "hardhat compile",
+    "lint:check": "prettier --check '(contracts|interfaces)/**/*.(sol|json)'",
+    "lint:write": "prettier -w '(contracts|interfaces)/**/*.(sol|json)'"
   },
   "repository": {
     "type": "git",
