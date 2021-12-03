@@ -33,10 +33,14 @@ library MerkleProof {
 
             if (computedHash <= proofElement) {
                 // Hash(current computed hash + current element of the proof)
-                computedHash = keccak256(abi.encodePacked(computedHash, proofElement));
+                computedHash = keccak256(
+                    abi.encodePacked(computedHash, proofElement)
+                );
             } else {
                 // Hash(current element of the proof + current computed hash)
-                computedHash = keccak256(abi.encodePacked(proofElement, computedHash));
+                computedHash = keccak256(
+                    abi.encodePacked(proofElement, computedHash)
+                );
                 index += 1;
             }
         }

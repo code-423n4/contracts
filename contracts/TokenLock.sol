@@ -13,11 +13,19 @@ contract TokenLock {
     uint256 public immutable unlockCliff;
     uint256 public immutable unlockEnd;
 
-    mapping(address=>uint256) public lockedAmounts;
-    mapping(address=>uint256) public claimedAmounts;
+    mapping(address => uint256) public lockedAmounts;
+    mapping(address => uint256) public claimedAmounts;
 
-    event Locked(address indexed sender, address indexed recipient, uint256 amount);
-    event Claimed(address indexed owner, address indexed recipient, uint256 amount);
+    event Locked(
+        address indexed sender,
+        address indexed recipient,
+        uint256 amount
+    );
+    event Claimed(
+        address indexed owner,
+        address indexed recipient,
+        uint256 amount
+    );
 
     /**
      * @dev Constructor.
@@ -26,9 +34,20 @@ contract TokenLock {
      * @param _unlockCliff The first time at which tokens are claimable.
      * @param _unlockEnd The time at which the last token will unlock.
      */
-    constructor(ERC20 _token, uint256 _unlockBegin, uint256 _unlockCliff, uint256 _unlockEnd) {
-        require(_unlockCliff >= _unlockBegin, "ERC20Locked: Unlock cliff must not be before unlock begin");
-        require(_unlockEnd >= _unlockCliff, "ERC20Locked: Unlock end must not be before unlock cliff");
+    constructor(
+        ERC20 _token,
+        uint256 _unlockBegin,
+        uint256 _unlockCliff,
+        uint256 _unlockEnd
+    ) {
+        require(
+            _unlockCliff >= _unlockBegin,
+            "ERC20Locked: Unlock cliff must not be before unlock begin"
+        );
+        require(
+            _unlockEnd >= _unlockCliff,
+            "ERC20Locked: Unlock end must not be before unlock cliff"
+        );
         token = _token;
         unlockBegin = _unlockBegin;
         unlockCliff = _unlockCliff;
@@ -40,7 +59,12 @@ contract TokenLock {
      * @param owner The account to check the claimable balance of.
      * @return The number of tokens currently claimable.
      */
-    function claimableBalance(address owner) public virtual view returns(uint256) {
+    function claimableBalance(address owner)
+        public
+        view
+        virtual
+        returns (uint256)
+    {
         if (block.timestamp < unlockCliff) {
             return 0;
         }
@@ -50,7 +74,10 @@ contract TokenLock {
         if (block.timestamp >= unlockEnd) {
             return locked - claimed;
         }
-        return (locked * (block.timestamp - unlockBegin)) / (unlockEnd - unlockBegin) - claimed;
+        return
+            (locked * (block.timestamp - unlockBegin)) /
+            (unlockEnd - unlockBegin) -
+            claimed;
     }
 
     /**
@@ -60,9 +87,15 @@ contract TokenLock {
      * @param amount The number of tokens to transfer and lock.
      */
     function lock(address recipient, uint256 amount) external {
-        require(block.timestamp < unlockEnd, "TokenLock: Unlock period already complete");
+        require(
+            block.timestamp < unlockEnd,
+            "TokenLock: Unlock period already complete"
+        );
         lockedAmounts[recipient] += amount;
-        require(token.transferFrom(msg.sender, address(this), amount), "TokenLock: Transfer failed");
+        require(
+            token.transferFrom(msg.sender, address(this), amount),
+            "TokenLock: Transfer failed"
+        );
         emit Locked(msg.sender, recipient, amount);
     }
 
@@ -77,7 +110,10 @@ contract TokenLock {
             amount = claimable;
         }
         claimedAmounts[msg.sender] += amount;
-        require(token.transfer(recipient, amount), "TokenLock: Transfer failed");
+        require(
+            token.transfer(recipient, amount),
+            "TokenLock: Transfer failed"
+        );
         emit Claimed(msg.sender, recipient, amount);
     }
 }

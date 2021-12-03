@@ -2,7 +2,6 @@
 // Modified from https://github.com/ensdomains/governance/blob/master/contracts/ENSToken.sol
 pragma solidity 0.8.10;
 
-import "./MerkleProof.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
@@ -10,13 +9,15 @@ import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
+import "./MerkleProof.sol";
+
 contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     using BitMaps for BitMaps.BitMap;
 
     bytes32 public merkleRoot;
     // Proportion of airdropped tokens that are immediately claimable
     // 10000 = 100%
-    uint256 public immutable claimableProportion; 
+    uint256 public immutable claimableProportion;
     uint256 public immutable claimPeriodEnds; // Timestamp at which tokens are no longer claimable
     BitMaps.BitMap private claimed;
 
@@ -29,7 +30,8 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         uint256 _claimableProportion,
         uint256 _claimPeriodEnds
     ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
-        require(_claimableProportion <= 10000, 'claimable exceeds limit');
+        // TODO: Change Symbol TBD
+        require(_claimableProportion <= 10000, "claimable exceeds limit");
         claimableProportion = _claimableProportion;
         claimPeriodEnds = _claimPeriodEnds;
     }
@@ -39,15 +41,24 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param amount The amount of the claim being made.
      * @param merkleProof A merkle proof proving the claim is valid.
      */
-    function claimTokens(uint256 amount, bytes32[] calldata merkleProof) external {
-        require(block.timestamp < claimPeriodEnds, "C4Token: Claim period ended");
+    function claimTokens(uint256 amount, bytes32[] calldata merkleProof)
+        external
+    {
+        require(
+            block.timestamp < claimPeriodEnds,
+            "C4Token: Claim period ended"
+        );
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, amount));
-        (bool valid, uint256 index) = MerkleProof.verify(merkleProof, merkleRoot, leaf);
+        (bool valid, uint256 index) = MerkleProof.verify(
+            merkleProof,
+            merkleRoot,
+            leaf
+        );
         require(valid, "C4Token: Valid proof required.");
         require(!isClaimed(index), "C4Token: Tokens already claimed.");
-        
+
         claimed.set(index);
-        uint256 claimableAmount = amount * claimableProportion / 10000;
+        uint256 claimableAmount = (amount * claimableProportion) / 10000;
         emit Claim(msg.sender, claimableAmount);
 
         // mint claimable proportion to caller
@@ -59,7 +70,10 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param dest The address to sweep the tokens to.
      */
     function sweep(address dest) external onlyOwner {
-        require(block.timestamp >= claimPeriodEnds, "C4Token: Claim period not yet ended");
+        require(
+            block.timestamp >= claimPeriodEnds,
+            "C4Token: Claim period not yet ended"
+        );
         _transfer(address(this), dest, balanceOf(address(this)));
     }
 
@@ -92,10 +106,11 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
     // The following functions are overrides required by Solidity.
 
-    function _afterTokenTransfer(address from, address to, uint256 amount)
-        internal
-        override(ERC20, ERC20Votes)
-    {
+    function _afterTokenTransfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal override(ERC20, ERC20Votes) {
         super._afterTokenTransfer(from, to, amount);
     }
 
