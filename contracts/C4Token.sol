@@ -1,301 +1,115 @@
-pragma solidity ^0.5.16;
-pragma experimental ABIEncoderV2;
+// SPDX-License-Identifier: MIT
+// Modified from https://github.com/ensdomains/governance/blob/master/contracts/ENSToken.sol
+pragma solidity 0.8.10;
 
-contract C4Token {
-    /// @notice EIP-20 token name for this token
-    string public constant name = "Code 423n4";
+import "./MerkleProof.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
+import "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
-    /// @notice EIP-20 token symbol for this token
-    string public constant symbol = "C4";
+contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
+    using BitMaps for BitMaps.BitMap;
 
-    /// @notice EIP-20 token decimals for this token
-    uint8 public constant decimals = 18;
+    bytes32 public merkleRoot;
+    // Proportion of airdropped tokens that are immediately claimable
+    // 10000 = 100%
+    uint256 public immutable claimableProportion; 
+    uint256 public immutable claimPeriodEnds; // Timestamp at which tokens are no longer claimable
+    BitMaps.BitMap private claimed;
 
-    /// @notice Total number of tokens in circulation
-    uint public constant totalSupply = 10000000e18; // 10 million C4
+    event MerkleRootChanged(bytes32 merkleRoot);
+    event Claim(address indexed claimant, uint256 amount);
 
-    /// @notice Allowance amounts on behalf of others
-    mapping (address => mapping (address => uint96)) internal allowances;
-
-    /// @notice Official record of token balances for each account
-    mapping (address => uint96) internal balances;
-
-    /// @notice A record of each accounts delegate
-    mapping (address => address) public delegates;
-
-    /// @notice A checkpoint for marking number of votes from a given block
-    struct Checkpoint {
-        uint32 fromBlock;
-        uint96 votes;
-    }
-
-    /// @notice A record of votes checkpoints for each account, by index
-    mapping (address => mapping (uint32 => Checkpoint)) public checkpoints;
-
-    /// @notice The number of checkpoints for each account
-    mapping (address => uint32) public numCheckpoints;
-
-    /// @notice The EIP-712 typehash for the contract's domain
-    bytes32 public constant DOMAIN_TYPEHASH = keccak256("EIP712Domain(string name,uint256 chainId,address verifyingContract)");
-
-    /// @notice The EIP-712 typehash for the delegation struct used by the contract
-    bytes32 public constant DELEGATION_TYPEHASH = keccak256("Delegation(address delegatee,uint256 nonce,uint256 expiry)");
-
-    /// @notice A record of states for signing / validating signatures
-    mapping (address => uint) public nonces;
-
-    /// @notice An event thats emitted when an account changes its delegate
-    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
-
-    /// @notice An event thats emitted when a delegate account's vote balance changes
-    event DelegateVotesChanged(address indexed delegate, uint previousBalance, uint newBalance);
-
-    /// @notice The standard EIP-20 transfer event
-    event Transfer(address indexed from, address indexed to, uint256 amount);
-
-    /// @notice The standard EIP-20 approval event
-    event Approval(address indexed owner, address indexed spender, uint256 amount);
-
-    /**
-     * @notice Construct a new C4 token
-     * @param account The initial account to grant all the tokens
-     */
-    constructor(address account) public {
-        balances[account] = uint96(totalSupply);
-        emit Transfer(address(0), account, totalSupply);
+    constructor(
+        uint256 _freeSupply, // number of tokens to mint for contract deployer (to transfer to DAO)
+        uint256 _airdropSupply, // number of tokens to reserve for the airdrop
+        uint256 _claimableProportion,
+        uint256 _claimPeriodEnds
+    ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
+        require(_claimableProportion <= 10000, 'claimable exceeds limit');
+        claimableProportion = _claimableProportion;
+        claimPeriodEnds = _claimPeriodEnds;
     }
 
     /**
-     * @notice Get the number of tokens `spender` is approved to spend on behalf of `account`
-     * @param account The address of the account holding the funds
-     * @param spender The address of the account spending the funds
-     * @return The number of tokens approved
+     * @dev Claims airdropped tokens.
+     * @param amount The amount of the claim being made.
+     * @param merkleProof A merkle proof proving the claim is valid.
      */
-    function allowance(address account, address spender) external view returns (uint) {
-        return allowances[account][spender];
+    function claimTokens(uint256 amount, bytes32[] calldata merkleProof) external {
+        require(block.timestamp < claimPeriodEnds, "C4Token: Claim period ended");
+        bytes32 leaf = keccak256(abi.encodePacked(msg.sender, amount));
+        (bool valid, uint256 index) = MerkleProof.verify(merkleProof, merkleRoot, leaf);
+        require(valid, "C4Token: Valid proof required.");
+        require(!isClaimed(index), "C4Token: Tokens already claimed.");
+        
+        claimed.set(index);
+        uint256 claimableAmount = amount * claimableProportion / 10000;
+        emit Claim(msg.sender, claimableAmount);
+
+        // mint claimable proportion to caller
+        _transfer(address(this), msg.sender, claimableAmount);
     }
 
     /**
-     * @notice Approve `spender` to transfer up to `amount` from `src`
-     * @dev This will overwrite the approval amount for `spender`
-     *  and is subject to issues noted [here](https://eips.ethereum.org/EIPS/eip-20#approve)
-     * @param spender The address of the account which may transfer tokens
-     * @param rawAmount The number of tokens that are approved (2^256-1 means infinite)
-     * @return Whether or not the approval succeeded
+     * @dev Allows the owner to sweep unclaimed tokens after the claim period ends.
+     * @param dest The address to sweep the tokens to.
      */
-    function approve(address spender, uint rawAmount) external returns (bool) {
-        uint96 amount;
-        if (rawAmount == uint(-1)) {
-            amount = uint96(-1);
-        } else {
-            amount = safe96(rawAmount, "C4Token::approve: amount exceeds 96 bits");
-        }
-
-        allowances[msg.sender][spender] = amount;
-
-        emit Approval(msg.sender, spender, amount);
-        return true;
+    function sweep(address dest) external onlyOwner {
+        require(block.timestamp >= claimPeriodEnds, "C4Token: Claim period not yet ended");
+        _transfer(address(this), dest, balanceOf(address(this)));
     }
 
     /**
-     * @notice Get the number of tokens held by the `account`
-     * @param account The address of the account to get the balance of
-     * @return The number of tokens held
+     * @dev Returns true if the claim at the given index in the merkle tree has already been made.
+     * @param index The index into the merkle tree.
      */
-    function balanceOf(address account) external view returns (uint) {
-        return balances[account];
+    function isClaimed(uint256 index) public view returns (bool) {
+        return claimed.get(index);
     }
 
     /**
-     * @notice Transfer `amount` tokens from `msg.sender` to `dst`
-     * @param dst The address of the destination account
-     * @param rawAmount The number of tokens to transfer
-     * @return Whether or not the transfer succeeded
+     * @dev Sets the merkle root. Only callable if the root is not yet set.
+     * @param _merkleRoot The merkle root to set.
      */
-    function transfer(address dst, uint rawAmount) external returns (bool) {
-        uint96 amount = safe96(rawAmount, "C4Token::transfer: amount exceeds 96 bits");
-        _transferTokens(msg.sender, dst, amount);
-        return true;
+    function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
+        require(merkleRoot == bytes32(0), "C4Token: Merkle root already set");
+        merkleRoot = _merkleRoot;
+        emit MerkleRootChanged(_merkleRoot);
     }
 
     /**
-     * @notice Transfer `amount` tokens from `src` to `dst`
-     * @param src The address of the source account
-     * @param dst The address of the destination account
-     * @param rawAmount The number of tokens to transfer
-     * @return Whether or not the transfer succeeded
+     * @dev Mints new tokens.
+     * @param dest The address to mint the new tokens to.
+     * @param amount The quantity of tokens to mint.
      */
-    function transferFrom(address src, address dst, uint rawAmount) external returns (bool) {
-        address spender = msg.sender;
-        uint96 spenderAllowance = allowances[src][spender];
-        uint96 amount = safe96(rawAmount, "C4Token::approve: amount exceeds 96 bits");
-
-        if (spender != src && spenderAllowance != uint96(-1)) {
-            uint96 newAllowance = sub96(spenderAllowance, amount, "C4Token::transferFrom: transfer amount exceeds spender allowance");
-            allowances[src][spender] = newAllowance;
-
-            emit Approval(src, spender, newAllowance);
-        }
-
-        _transferTokens(src, dst, amount);
-        return true;
+    function mint(address dest, uint256 amount) external onlyOwner {
+        _mint(dest, amount);
     }
 
-    /**
-     * @notice Delegate votes from `msg.sender` to `delegatee`
-     * @param delegatee The address to delegate votes to
-     */
-    function delegate(address delegatee) public {
-        return _delegate(msg.sender, delegatee);
+    // The following functions are overrides required by Solidity.
+
+    function _afterTokenTransfer(address from, address to, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
+    {
+        super._afterTokenTransfer(from, to, amount);
     }
 
-    /**
-     * @notice Delegates votes from signatory to `delegatee`
-     * @param delegatee The address to delegate votes to
-     * @param nonce The contract state required to match the signature
-     * @param expiry The time at which to expire the signature
-     * @param v The recovery byte of the signature
-     * @param r Half of the ECDSA signature pair
-     * @param s Half of the ECDSA signature pair
-     */
-    function delegateBySig(address delegatee, uint nonce, uint expiry, uint8 v, bytes32 r, bytes32 s) public {
-        bytes32 domainSeparator = keccak256(abi.encode(DOMAIN_TYPEHASH, keccak256(bytes(name)), getChainId(), address(this)));
-        bytes32 structHash = keccak256(abi.encode(DELEGATION_TYPEHASH, delegatee, nonce, expiry));
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", domainSeparator, structHash));
-        address signatory = ecrecover(digest, v, r, s);
-        require(signatory != address(0), "C4Token::delegateBySig: invalid signature");
-        require(nonce == nonces[signatory]++, "C4Token::delegateBySig: invalid nonce");
-        require(now <= expiry, "C4Token::delegateBySig: signature expired");
-        return _delegate(signatory, delegatee);
+    function _mint(address to, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
+    {
+        super._mint(to, amount);
     }
 
-    /**
-     * @notice Gets the current votes balance for `account`
-     * @param account The address to get votes balance
-     * @return The number of current votes for `account`
-     */
-    function getCurrentVotes(address account) external view returns (uint96) {
-        uint32 nCheckpoints = numCheckpoints[account];
-        return nCheckpoints > 0 ? checkpoints[account][nCheckpoints - 1].votes : 0;
-    }
-
-    /**
-     * @notice Determine the prior number of votes for an account as of a block number
-     * @dev Block number must be a finalized block or else this function will revert to prevent misinformation.
-     * @param account The address of the account to check
-     * @param blockNumber The block number to get the vote balance at
-     * @return The number of votes the account had as of the given block
-     */
-    function getPriorVotes(address account, uint blockNumber) public view returns (uint96) {
-        require(blockNumber < block.number, "C4Token::getPriorVotes: not yet determined");
-
-        uint32 nCheckpoints = numCheckpoints[account];
-        if (nCheckpoints == 0) {
-            return 0;
-        }
-
-        // First check most recent balance
-        if (checkpoints[account][nCheckpoints - 1].fromBlock <= blockNumber) {
-            return checkpoints[account][nCheckpoints - 1].votes;
-        }
-
-        // Next check implicit zero balance
-        if (checkpoints[account][0].fromBlock > blockNumber) {
-            return 0;
-        }
-
-        uint32 lower = 0;
-        uint32 upper = nCheckpoints - 1;
-        while (upper > lower) {
-            uint32 center = upper - (upper - lower) / 2; // ceil, avoiding overflow
-            Checkpoint memory cp = checkpoints[account][center];
-            if (cp.fromBlock == blockNumber) {
-                return cp.votes;
-            } else if (cp.fromBlock < blockNumber) {
-                lower = center;
-            } else {
-                upper = center - 1;
-            }
-        }
-        return checkpoints[account][lower].votes;
-    }
-
-    function _delegate(address delegator, address delegatee) internal {
-        address currentDelegate = delegates[delegator];
-        uint96 delegatorBalance = balances[delegator];
-        delegates[delegator] = delegatee;
-
-        emit DelegateChanged(delegator, currentDelegate, delegatee);
-
-        _moveDelegates(currentDelegate, delegatee, delegatorBalance);
-    }
-
-    function _transferTokens(address src, address dst, uint96 amount) internal {
-        require(src != address(0), "C4Token::_transferTokens: cannot transfer from the zero address");
-        require(dst != address(0), "C4Token::_transferTokens: cannot transfer to the zero address");
-
-        balances[src] = sub96(balances[src], amount, "C4Token::_transferTokens: transfer amount exceeds balance");
-        balances[dst] = add96(balances[dst], amount, "C4Token::_transferTokens: transfer amount overflows");
-        emit Transfer(src, dst, amount);
-
-        _moveDelegates(delegates[src], delegates[dst], amount);
-    }
-
-    function _moveDelegates(address srcRep, address dstRep, uint96 amount) internal {
-        if (srcRep != dstRep && amount > 0) {
-            if (srcRep != address(0)) {
-                uint32 srcRepNum = numCheckpoints[srcRep];
-                uint96 srcRepOld = srcRepNum > 0 ? checkpoints[srcRep][srcRepNum - 1].votes : 0;
-                uint96 srcRepNew = sub96(srcRepOld, amount, "C4Token::_moveVotes: vote amount underflows");
-                _writeCheckpoint(srcRep, srcRepNum, srcRepOld, srcRepNew);
-            }
-
-            if (dstRep != address(0)) {
-                uint32 dstRepNum = numCheckpoints[dstRep];
-                uint96 dstRepOld = dstRepNum > 0 ? checkpoints[dstRep][dstRepNum - 1].votes : 0;
-                uint96 dstRepNew = add96(dstRepOld, amount, "C4Token::_moveVotes: vote amount overflows");
-                _writeCheckpoint(dstRep, dstRepNum, dstRepOld, dstRepNew);
-            }
-        }
-    }
-
-    function _writeCheckpoint(address delegatee, uint32 nCheckpoints, uint96 oldVotes, uint96 newVotes) internal {
-      uint32 blockNumber = safe32(block.number, "C4Token::_writeCheckpoint: block number exceeds 32 bits");
-
-      if (nCheckpoints > 0 && checkpoints[delegatee][nCheckpoints - 1].fromBlock == blockNumber) {
-          checkpoints[delegatee][nCheckpoints - 1].votes = newVotes;
-      } else {
-          checkpoints[delegatee][nCheckpoints] = Checkpoint(blockNumber, newVotes);
-          numCheckpoints[delegatee] = nCheckpoints + 1;
-      }
-
-      emit DelegateVotesChanged(delegatee, oldVotes, newVotes);
-    }
-
-    function safe32(uint n, string memory errorMessage) internal pure returns (uint32) {
-        require(n < 2**32, errorMessage);
-        return uint32(n);
-    }
-
-    function safe96(uint n, string memory errorMessage) internal pure returns (uint96) {
-        require(n < 2**96, errorMessage);
-        return uint96(n);
-    }
-
-    function add96(uint96 a, uint96 b, string memory errorMessage) internal pure returns (uint96) {
-        uint96 c = a + b;
-        require(c >= a, errorMessage);
-        return c;
-    }
-
-    function sub96(uint96 a, uint96 b, string memory errorMessage) internal pure returns (uint96) {
-        require(b <= a, errorMessage);
-        return a - b;
-    }
-
-    function getChainId() internal pure returns (uint) {
-        uint256 chainId;
-        assembly { chainId := chainid() }
-        return chainId;
+    function _burn(address account, uint256 amount)
+        internal
+        override(ERC20, ERC20Votes)
+    {
+        super._burn(account, amount);
     }
 }
