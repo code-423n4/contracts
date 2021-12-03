@@ -11,7 +11,7 @@ import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.so
 contract Code4renaGovernor is Governor, GovernorSettings, GovernorCountingSimple, GovernorVotes, GovernorVotesQuorumFraction, GovernorTimelockControl {
     constructor(ERC20Votes _token, TimelockController _timelock)
         Governor("Code4renaGovernor")
-        GovernorSettings(1 /* 1 block */, 302400 /* 1 week */, 1000e18)
+        GovernorSettings(1 /* 1 block */, 302400 /* 1 week */, 50000e18)
         GovernorVotes(_token)
         GovernorVotesQuorumFraction(1) // 1%
         GovernorTimelockControl(_timelock)
