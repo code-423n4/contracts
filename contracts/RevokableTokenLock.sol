@@ -3,7 +3,7 @@ pragma solidity 0.8.10;
 
 import "./TokenLock.sol";
 
-/// @dev Same as TokenLock, but allows for the DAO to claim locked tokens.
+/// @dev Same as TokenLock, but enables a revoker to end vesting prematurely and send locked tokens to governance.
 contract RevokableTokenLock is TokenLock {
     address public revoker;
     address public governance;
@@ -36,12 +36,7 @@ contract RevokableTokenLock is TokenLock {
      * @param owner The account to check the claimable balance of.
      * @return The number of tokens currently claimable.
      */
-    function claimableBalance(address owner)
-        public
-        view
-        override
-        returns (uint256)
-    {
+    function claimableBalance(address owner) public view override returns (uint256) {
         if (isRevoked[owner]) {
             return 0;
         }
@@ -49,7 +44,7 @@ contract RevokableTokenLock is TokenLock {
     }
 
     /**
-     * @dev revoke access of a owner and transfer pending 
+     * @dev revoke access of a owner and transfer pending
      * @param owner The account whose access will be revoked.
      */
     function revoke(address owner) external {
@@ -59,13 +54,10 @@ contract RevokableTokenLock is TokenLock {
 
         uint256 amount = lockedAmounts[owner];
         if (amount > 0) {
-            require(
-            token.transfer(governance, amount),
-            "TokenLock: Transfer failed"
-            );
+            require(token.transfer(governance, amount), "TokenLock: Transfer failed");
             lockedAmounts[owner] = 0;
         }
-        
+
         emit Revoked(owner, amount);
     }
 }
