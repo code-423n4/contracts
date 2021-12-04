@@ -44,16 +44,10 @@ contract TokenSale is Ownable {
         uint256 _tokenOutPrice,
         address _saleRecipient
     ) Ownable() {
-        require(
-            block.timestamp <= _saleStart,
-            "TokenSale: start date may not be in the past"
-        );
+        require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
         require(_saleDuration > 0, "TokenSale: the duration must not be zero");
         require(_tokenOutPrice > 0, "TokenSale: the price must not be zero");
-        require(
-            _saleRecipient != address(0),
-            "TokenSale: sale recipient should not be zero"
-        );
+        require(_saleRecipient != address(0), "TokenSale: sale recipient should not be zero");
 
         tokenIn = _tokenIn;
         tokenOut = _tokenOut;
@@ -68,15 +62,9 @@ contract TokenSale is Ownable {
      * @param _tokenOutAmount The amount of `tokenOut` to buy
      * @return tokenInAmount_ The amount of `tokenIn`s  bought.
      */
-    function buy(uint256 _tokenOutAmount)
-        external
-        returns (uint256 tokenInAmount_)
-    {
+    function buy(uint256 _tokenOutAmount) external returns (uint256 tokenInAmount_) {
         require(saleStart <= block.timestamp, "TokenSale: not started");
-        require(
-            block.timestamp <= saleStart + saleDuration,
-            "TokenSale: already ended"
-        );
+        require(block.timestamp <= saleStart + saleDuration, "TokenSale: already ended");
         require(
             _tokenOutAmount <= whitelistedBuyersAmount[msg.sender],
             "TokenSale: cannot buy more than allowed"
@@ -106,14 +94,10 @@ contract TokenSale is Ownable {
      * @param _buyers The buyers to change the allocation for
      * @param _newTokenOutAmounts The new token amounts
      */
-    function changeWhiteList(
-        address[] memory _buyers,
-        uint256[] memory _newTokenOutAmounts
-    ) external {
-        require(
-            msg.sender == owner() || msg.sender == saleRecipient,
-            "TokenSale: not authorized"
-        );
+    function changeWhiteList(address[] memory _buyers, uint256[] memory _newTokenOutAmounts)
+        external
+    {
+        require(msg.sender == owner() || msg.sender == saleRecipient, "TokenSale: not authorized");
         require(
             _buyers.length == _newTokenOutAmounts.length,
             "TokenSale: parameter length mismatch"
@@ -125,14 +109,22 @@ contract TokenSale is Ownable {
     }
 
     /**
-     * @dev Transfers out tokens accidentally sent to the contract.
+     * @dev Transfers out any remaining `tokenOut` after the sale
+     */
+    function sweepTokenOut() external {
+        require(saleStart + saleDuration < block.timestamp, "TokenSale: sale did not end yet");
+
+        uint256 tokenOutBalance = tokenOut.balanceOf(address(this));
+        require(tokenOut.transfer(owner(), tokenOutBalance), "TokenSale: transfer failed");
+    }
+
+    /**
+     * @dev Transfers out any tokens (except `tokenOut`) accidentally sent to the contract.
      * @param _token The token to sweep
      */
     function sweep(ERC20 _token) external {
-        require(
-            msg.sender == owner() || msg.sender == saleRecipient,
-            "TokenSale: not authorized"
-        );
+        require(msg.sender == owner() || msg.sender == saleRecipient, "TokenSale: not authorized");
+        require(_token != tokenOut, "TokenSale: cannot sweep tokenOut as it belongs to owner");
         require(
             _token.transfer(msg.sender, _token.balanceOf(address(this))),
             "TokenSale: transfer failed"

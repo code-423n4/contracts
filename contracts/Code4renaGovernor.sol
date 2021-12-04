@@ -30,21 +30,11 @@ contract Code4renaGovernor is
 
     // The following functions are overrides required by Solidity.
 
-    function votingDelay()
-        public
-        view
-        override(IGovernor, GovernorSettings)
-        returns (uint256)
-    {
+    function votingDelay() public view override(IGovernor, GovernorSettings) returns (uint256) {
         return super.votingDelay();
     }
 
-    function votingPeriod()
-        public
-        view
-        override(IGovernor, GovernorSettings)
-        returns (uint256)
-    {
+    function votingPeriod() public view override(IGovernor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
     }
 

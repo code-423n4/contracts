@@ -10,6 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
 import "./MerkleProof.sol";
+import "./TokenLock.sol";
 
 contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     using BitMaps for BitMaps.BitMap;
@@ -19,21 +20,32 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     // 10000 = 100%
     uint256 public immutable claimableProportion;
     uint256 public immutable claimPeriodEnds; // Timestamp at which tokens are no longer claimable
+    TokenLock public immutable tokenLock;
     BitMaps.BitMap private claimed;
 
     event MerkleRootChanged(bytes32 merkleRoot);
     event Claim(address indexed claimant, uint256 amount);
+    event Vest(address indexed claimant, uint256 amount);
 
     constructor(
-        uint256 _freeSupply, // number of tokens to mint for contract deployer (to transfer to DAO)
+        uint256 _freeSupply, // number of tokens to mint for contract deployer (then transferred to timelock controller after deployment)
         uint256 _airdropSupply, // number of tokens to reserve for the airdrop
         uint256 _claimableProportion,
-        uint256 _claimPeriodEnds
+        uint256 _claimPeriodEnds,
+        uint256 _vestStart // start timestamp of vesting period
     ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
         // TODO: Change Symbol TBD
         require(_claimableProportion <= 10000, "claimable exceeds limit");
+        _mint(msg.sender, freeSupply);
+        _mint(address(this), airdropSupply);
         claimableProportion = _claimableProportion;
         claimPeriodEnds = _claimPeriodEnds;
+        tokenLock = new TokenLock(
+            address(this),
+            _vestStart, // _unlockBegin: vesting period starts at specified timestamp
+            _vestStart, // _unlockCliff: no cliff
+            _vestStart + 4 * 365 days // _unlockEnd: 4 year vesting period
+        );
     }
 
     /**
@@ -53,20 +65,22 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         // to an intermediate hash in the merkle tree but `leaf` uses msg.sender
         // which is 20 bytes instead of 32 bytes and can't be chosen arbitrarily
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, amount));
-        (bool valid, uint256 index) = MerkleProof.verify(
-            merkleProof,
-            merkleRoot,
-            leaf
-        );
+        (bool valid, uint256 index) = MerkleProof.verify(merkleProof, merkleRoot, leaf);
         require(valid, "C4Token: Valid proof required.");
         require(!isClaimed(index), "C4Token: Tokens already claimed.");
 
         claimed.set(index);
         uint256 claimableAmount = (amount * claimableProportion) / 10000;
+        uint256 remainingAmount = amount - claimableAmount;
         emit Claim(msg.sender, claimableAmount);
+        emit Vest(msg.sender, remainingAmount);
 
-        // mint claimable proportion to caller
+        // transfer claimable proportion to caller
         _transfer(address(this), msg.sender, claimableAmount);
+
+        // approve TokenLock for token transfer
+        _approve(address(this), tokenLock, remainingAmount);
+        tokenLock.lock(msg.sender, remainingAmount);
     }
 
     /**
@@ -74,10 +88,7 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param dest The address to sweep the tokens to.
      */
     function sweep(address dest) external onlyOwner {
-        require(
-            block.timestamp >= claimPeriodEnds,
-            "C4Token: Claim period not yet ended"
-        );
+        require(block.timestamp >= claimPeriodEnds, "C4Token: Claim period not yet ended");
         _transfer(address(this), dest, balanceOf(address(this)));
     }
 
@@ -118,17 +129,11 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         super._afterTokenTransfer(from, to, amount);
     }
 
-    function _mint(address to, uint256 amount)
-        internal
-        override(ERC20, ERC20Votes)
-    {
+    function _mint(address to, uint256 amount) internal override(ERC20, ERC20Votes) {
         super._mint(to, amount);
     }
 
-    function _burn(address account, uint256 amount)
-        internal
-        override(ERC20, ERC20Votes)
-    {
+    function _burn(address account, uint256 amount) internal override(ERC20, ERC20Votes) {
         super._burn(account, amount);
     }
 }
