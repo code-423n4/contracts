@@ -20,7 +20,10 @@ contract RevokableTokenLock is TokenLock {
         address _revoker
     ) TokenLock(_token, _unlockBegin, _unlockCliff, _unlockEnd) {
         require(_revoker != address(0), "revoker address cannot be set to 0");
-        require(_governance != address(0), "revoker address cannot be set to 0");
+        require(
+            _governance != address(0),
+            "revoker address cannot be set to 0"
+        );
         governance = _governance;
         revoker = _revoker;
     }
@@ -49,23 +52,26 @@ contract RevokableTokenLock is TokenLock {
     }
 
     /**
-     * @dev revoke access of a owner and transfer pending 
+     * @dev revoke access of a owner and transfer pending
      * @param owner The account whose access will be revoked.
      */
     function revoke(address owner) external {
-        require(msg.sender == revoker || msg.sender == governance, "onlyAuthorizedActors");
+        require(
+            msg.sender == revoker || msg.sender == governance,
+            "onlyAuthorizedActors"
+        );
         require(!isRevoked[owner], "Access already revoked for owner");
         isRevoked[owner] = true;
 
         uint256 amount = lockedAmounts[owner];
         if (amount > 0) {
             require(
-            token.transfer(governance, amount),
-            "TokenLock: Transfer failed"
+                token.transfer(governance, amount),
+                "TokenLock: Transfer failed"
             );
             lockedAmounts[owner] = 0;
         }
-        
+
         emit Revoked(owner, amount);
     }
 }

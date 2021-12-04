@@ -48,6 +48,10 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
             block.timestamp < claimPeriodEnds,
             "C4Token: Claim period ended"
         );
+        // we don't need to check that `merkleProof` has the correct length as
+        // submitting a valid partial merkle proof would require `leaf` to map
+        // to an intermediate hash in the merkle tree but `leaf` uses msg.sender
+        // which is 20 bytes instead of 32 bytes and can't be chosen arbitrarily
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, amount));
         (bool valid, uint256 index) = MerkleProof.verify(
             merkleProof,

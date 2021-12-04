@@ -18,6 +18,8 @@ library MerkleProof {
      * defined by `root`. For this, a `proof` must be provided, containing
      * sibling hashes on the branch from the leaf to the root of the tree. Each
      * pair of leaves and each pair of pre-images are assumed to be sorted.
+     * the returned `index` is not the leaf order index, it's more like a unique identifier
+     * for that leaf
      */
     function verify(
         bytes32[] memory proof,
