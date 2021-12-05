@@ -36,12 +36,12 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
         // TODO: Change Symbol TBD
         require(_claimableProportion <= 10000, "claimable exceeds limit");
-        _mint(msg.sender, freeSupply);
-        _mint(address(this), airdropSupply);
+        _mint(msg.sender, _freeSupply);
+        _mint(address(this), _airdropSupply);
         claimableProportion = _claimableProportion;
         claimPeriodEnds = _claimPeriodEnds;
         tokenLock = new TokenLock(
-            address(this),
+            ERC20(address(this)),
             _vestStart, // _unlockBegin: vesting period starts at specified timestamp
             _vestStart, // _unlockCliff: no cliff
             _vestStart + 4 * 365 days // _unlockEnd: 4 year vesting period
@@ -79,7 +79,7 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         _transfer(address(this), msg.sender, claimableAmount);
 
         // approve TokenLock for token transfer
-        _approve(address(this), tokenLock, remainingAmount);
+        _approve(address(this), address(tokenLock), remainingAmount);
         tokenLock.lock(msg.sender, remainingAmount);
     }
 

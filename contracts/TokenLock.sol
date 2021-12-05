@@ -51,7 +51,7 @@ contract TokenLock {
      * @param owner The account to check the claimable balance of.
      * @return The number of tokens currently claimable.
      */
-    function claimableBalance(address owner) public view returns (uint256) {
+    function claimableBalance(address owner) public virtual view returns (uint256) {
         if (block.timestamp < unlockCliff) {
             return 0;
         }
