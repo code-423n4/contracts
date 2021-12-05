@@ -74,9 +74,12 @@ contract TokenSale is Ownable {
      * @param _tokenOutAmount The amount of `tokenOut` to buy
      * @return tokenInAmount_ The amount of `tokenIn`s  bought.
      */
-    function buy(uint256 _tokenOutAmount, uint256 _unlockBegin,
+    function buy(
+        uint256 _tokenOutAmount,
+        uint256 _unlockBegin,
         uint256 _unlockCliff,
-        uint256 _unlockEnd) external returns (uint256 tokenInAmount_) {
+        uint256 _unlockEnd
+    ) external returns (uint256 tokenInAmount_) {
         require(saleStart <= block.timestamp, "TokenSale: not started");
         require(block.timestamp <= saleStart + saleDuration, "TokenSale: already ended");
         require(
