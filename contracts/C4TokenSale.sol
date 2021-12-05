@@ -4,6 +4,8 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import "../interfaces/IRevokableTokenLock.sol";
+
 /**
  * @dev Sells a token at a predetermined price to whitelisted buyers. The number of tokens each address can buy can be regulated.
  */
@@ -18,6 +20,7 @@ contract TokenSale is Ownable {
     uint64 public immutable saleDuration;
     /// address receiving the proceeds of the sale
     address saleRecipient;
+    IRevokableTokenLock public tokenLock;
 
     /// how many `tokenOut`s each address may buy
     mapping(address => uint256) public whitelistedBuyersAmount;
@@ -42,7 +45,8 @@ contract TokenSale is Ownable {
         uint64 _saleStart,
         uint64 _saleDuration,
         uint256 _tokenOutPrice,
-        address _saleRecipient
+        address _saleRecipient,
+        address _tokenLock
     ) Ownable() {
         require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
         require(_saleDuration > 0, "TokenSale: the duration must not be zero");
@@ -55,6 +59,14 @@ contract TokenSale is Ownable {
         saleDuration = _saleDuration;
         tokenOutPrice = _tokenOutPrice;
         saleRecipient = _saleRecipient;
+
+        tokenLock = IRevokableTokenLock(_tokenLock);
+    }
+
+    // Set tokenlock contract by the owner of this contract
+    function setTokenLock(address _tokenLock) external onlyOwner {
+        require(_tokenLock != address(0), "Address cannot be 0x");
+        tokenLock = IRevokableTokenLock(_tokenLock);
     }
 
     /**
@@ -62,7 +74,9 @@ contract TokenSale is Ownable {
      * @param _tokenOutAmount The amount of `tokenOut` to buy
      * @return tokenInAmount_ The amount of `tokenIn`s  bought.
      */
-    function buy(uint256 _tokenOutAmount) external returns (uint256 tokenInAmount_) {
+    function buy(uint256 _tokenOutAmount, uint256 _unlockBegin,
+        uint256 _unlockCliff,
+        uint256 _unlockEnd) external returns (uint256 tokenInAmount_) {
         require(saleStart <= block.timestamp, "TokenSale: not started");
         require(block.timestamp <= saleStart + saleDuration, "TokenSale: already ended");
         require(
@@ -80,11 +94,19 @@ contract TokenSale is Ownable {
             tokenIn.transferFrom(msg.sender, saleRecipient, tokenInAmount_),
             "TokenSale: tokenIn transfer failed"
         );
-        // TODO: deploy vesting contract for msg.sender and send funds there instead
+
+        uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
+        uint256 remainingAmount = _tokenOutAmount - claimableAmount;
+
         require(
-            tokenOut.transfer(msg.sender, _tokenOutAmount),
+            tokenOut.transfer(msg.sender, claimableAmount),
             "TokenSale: tokenOut transfer failed"
         );
+
+        tokenLock.setupVesting(msg.sender, _unlockBegin, _unlockCliff, _unlockEnd);
+        // approve TokenLock for token transfer
+        tokenOut.approve(address(tokenLock), remainingAmount);
+        tokenLock.lock(msg.sender, remainingAmount);
 
         emit Sale(msg.sender, tokenInAmount_, _tokenOutAmount);
     }
