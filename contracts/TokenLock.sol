@@ -20,6 +20,7 @@ contract TokenLock is Ownable {
         uint256 claimedAmounts;
     }
 
+    address public tokenSale;
     mapping(address => VestingParams) public vesting;
 
     event Setup(
@@ -39,6 +40,12 @@ contract TokenLock is Ownable {
         token = _token;
     }
 
+    // Set sale token contract address.
+    function setTokenSale(address _tokenSale) external onlyOwner {
+        require(_tokenSale != address(0), "Address != 0x");
+        tokenSale = _tokenSale;
+    }
+
     /**
      * @dev setup vesting for recipient.
      * @param recipient The account for which vesting will be setup.
@@ -53,7 +60,7 @@ contract TokenLock is Ownable {
         uint256 _unlockEnd
     ) external {
         require(
-            msg.sender == owner() || msg.sender == address(token),
+            msg.sender == owner() || msg.sender == address(token) || msg.sender == tokenSale,
             "Only owner/ claims contract can call"
         );
         require(
