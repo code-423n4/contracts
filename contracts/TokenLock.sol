@@ -3,35 +3,59 @@
 pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @dev Time-locks tokens according to an unlock schedule.
  */
-contract TokenLock {
+
+contract TokenLock is Ownable {
     ERC20 public immutable token;
-    uint256 public immutable unlockBegin;
-    uint256 public immutable unlockCliff;
-    uint256 public immutable unlockEnd;
 
-    mapping(address => uint256) public lockedAmounts;
-    mapping(address => uint256) public claimedAmounts;
+    struct VestingParams {
+        uint256 unlockBegin;
+        uint256 unlockCliff;
+        uint256 unlockEnd;
+        uint256 lockedAmounts;
+        uint256 claimedAmounts;
+    }
 
+    mapping(address => VestingParams) public vesting;
+
+    event Setup(
+        address indexed recipient,
+        uint256 _unlockBegin,
+        uint256 _unlockCliff,
+        uint256 _unlockEnd
+    );
     event Locked(address indexed sender, address indexed recipient, uint256 amount);
     event Claimed(address indexed owner, address indexed recipient, uint256 amount);
 
     /**
      * @dev Constructor.
      * @param _token The token this contract will lock
+     */
+    constructor(ERC20 _token) Ownable() {
+        token = _token;
+    }
+
+    /**
+     * @dev setup vesting for recipient.
+     * @param recipient The account for which vesting will be setup.
      * @param _unlockBegin The time at which unlocking of tokens will begin.
      * @param _unlockCliff The first time at which tokens are claimable.
      * @param _unlockEnd The time at which the last token will unlock.
      */
-    constructor(
-        ERC20 _token,
+    function setupVesting(
+        address recipient,
         uint256 _unlockBegin,
         uint256 _unlockCliff,
         uint256 _unlockEnd
-    ) {
+    ) external {
+        require(
+            msg.sender == owner() || msg.sender == address(token),
+            "Only owner/ claims contract can call"
+        );
         require(
             _unlockCliff >= _unlockBegin,
             "ERC20Locked: Unlock cliff must not be before unlock begin"
@@ -40,10 +64,9 @@ contract TokenLock {
             _unlockEnd >= _unlockCliff,
             "ERC20Locked: Unlock end must not be before unlock cliff"
         );
-        token = _token;
-        unlockBegin = _unlockBegin;
-        unlockCliff = _unlockCliff;
-        unlockEnd = _unlockEnd;
+        vesting[recipient].unlockBegin = _unlockBegin;
+        vesting[recipient].unlockCliff = _unlockCliff;
+        vesting[recipient].unlockEnd = _unlockEnd;
     }
 
     /**
@@ -51,17 +74,20 @@ contract TokenLock {
      * @param owner The account to check the claimable balance of.
      * @return The number of tokens currently claimable.
      */
-    function claimableBalance(address owner) public virtual view returns (uint256) {
-        if (block.timestamp < unlockCliff) {
+    function claimableBalance(address owner) public view virtual returns (uint256) {
+        if (block.timestamp < vesting[owner].unlockCliff) {
             return 0;
         }
 
-        uint256 locked = lockedAmounts[owner];
-        uint256 claimed = claimedAmounts[owner];
-        if (block.timestamp >= unlockEnd) {
+        uint256 locked = vesting[owner].lockedAmounts;
+        uint256 claimed = vesting[owner].claimedAmounts;
+        if (block.timestamp >= vesting[owner].unlockEnd) {
             return locked - claimed;
         }
-        return (locked * (block.timestamp - unlockBegin)) / (unlockEnd - unlockBegin) - claimed;
+        return
+            (locked * (block.timestamp - vesting[owner].unlockBegin)) /
+            (vesting[owner].unlockEnd - vesting[owner].unlockBegin) -
+            claimed;
     }
 
     /**
@@ -71,8 +97,11 @@ contract TokenLock {
      * @param amount The number of tokens to transfer and lock.
      */
     function lock(address recipient, uint256 amount) external {
-        require(block.timestamp < unlockEnd, "TokenLock: Unlock period already complete");
-        lockedAmounts[recipient] += amount;
+        require(
+            block.timestamp < vesting[recipient].unlockEnd,
+            "TokenLock: Unlock period already complete"
+        );
+        vesting[recipient].lockedAmounts += amount;
         require(
             token.transferFrom(msg.sender, address(this), amount),
             "TokenLock: Transfer failed"
@@ -90,8 +119,10 @@ contract TokenLock {
         if (amount > claimable) {
             amount = claimable;
         }
-        claimedAmounts[msg.sender] += amount;
-        require(token.transfer(recipient, amount), "TokenLock: Transfer failed");
-        emit Claimed(msg.sender, recipient, amount);
+        if (amount != 0) {
+            vesting[msg.sender].claimedAmounts += amount;
+            require(token.transfer(recipient, amount), "TokenLock: Transfer failed");
+            emit Claimed(msg.sender, recipient, amount);
+        }
     }
 }
