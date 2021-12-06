@@ -73,8 +73,12 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         require(!isClaimed(index), "C4Token: Tokens already claimed.");
 
         claimed.set(index);
-        uint256 claimableAmount = (amount * claimableProportion) / 10000;
-        uint256 remainingAmount = amount - claimableAmount;
+
+        unchecked {
+            uint256 claimableAmount = (amount * claimableProportion) / 10000;
+            uint256 remainingAmount = amount - claimableAmount;
+        }
+
         emit Claim(msg.sender, claimableAmount);
 
         // transfer claimable proportion to caller

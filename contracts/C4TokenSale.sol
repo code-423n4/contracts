@@ -93,8 +93,10 @@ contract TokenSale is Ownable {
             "TokenSale: tokenIn transfer failed"
         );
 
-        uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
-        uint256 remainingAmount = _tokenOutAmount - claimableAmount;
+        unchecked {
+            uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
+            uint256 remainingAmount = _tokenOutAmount - claimableAmount;
+        }
 
         require(
             tokenOut.transfer(msg.sender, claimableAmount),
