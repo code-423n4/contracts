@@ -52,6 +52,7 @@ contract TokenSale is Ownable {
         require(_saleDuration > 0, "TokenSale: the duration must not be zero");
         require(_tokenOutPrice > 0, "TokenSale: the price must not be zero");
         require(_saleRecipient != address(0), "TokenSale: sale recipient should not be zero");
+        require(_tokenLock != address(0), "Address cannot be 0x");
 
         tokenIn = _tokenIn;
         tokenOut = _tokenOut;
@@ -60,12 +61,6 @@ contract TokenSale is Ownable {
         tokenOutPrice = _tokenOutPrice;
         saleRecipient = _saleRecipient;
 
-        tokenLock = IRevokableTokenLock(_tokenLock);
-    }
-
-    // Set tokenlock contract by the owner of this contract
-    function setTokenLock(address _tokenLock) external onlyOwner {
-        require(_tokenLock != address(0), "Address cannot be 0x");
         tokenLock = IRevokableTokenLock(_tokenLock);
     }
 
