@@ -17,11 +17,16 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
     bytes32 public merkleRoot;
     // Proportion of airdropped tokens that are immediately claimable
-    // 10000 = 100%
+    // 10_000 = 100%
     uint256 public immutable claimableProportion;
-    uint256 public immutable claimPeriodEnds; // Timestamp at which tokens are no longer claimable
+    // Timestamp at which tokens are no longer claimable
+    uint256 public immutable claimPeriodEnds;
+    // vesting contract
     IRevokableTokenLock public tokenLock;
     BitMaps.BitMap private claimed;
+
+    // time after claiming by which all the vested tokens have been unlocked.
+    uint256 public unlockEnd;
 
     event MerkleRootChanged(bytes32 merkleRoot);
     event Claim(address indexed claimant, uint256 amount);
@@ -30,18 +35,24 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     constructor(
         uint256 _freeSupply, // number of tokens to mint for contract deployer (then transferred to timelock controller after deployment)
         uint256 _airdropSupply, // number of tokens to reserve for the airdrop
-        uint256 _claimableProportion,
-        uint256 _claimPeriodEnds
+        uint256 _claimableProportion, // value in BPS of the % of claimable vs vested
+        uint256 _claimPeriodEnds, // Timestamp at which tokens are no longer claimable
+        uint256 _unlockEnd // time after claiming by which all the vested tokens would have been unlocked.
     ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
         // TODO: Change Symbol TBD
-        require(_claimableProportion <= 10000, "claimable exceeds limit");
+        require(_claimableProportion <= 10_000, "claimable exceeds limit");
+        require(_claimPeriodEnds > block.timestamp, "cannot have a backward time");
         _mint(msg.sender, _freeSupply);
         _mint(address(this), _airdropSupply);
         claimableProportion = _claimableProportion;
         claimPeriodEnds = _claimPeriodEnds;
+        unlockEnd = _unlockEnd;
     }
 
-    // Set tokenlock contract by the owner of this contract
+    /**
+     * @dev set vesting contract
+     * @param _tokenLock address of the vesting contract
+     */
     function setTokenLock(address _tokenLock) external onlyOwner {
         require(_tokenLock != address(0), "Address cannot be 0x");
         tokenLock = IRevokableTokenLock(_tokenLock);
@@ -50,18 +61,9 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     /**
      * @dev Claims airdropped tokens.
      * @param amount The amount of the claim being made.
-     * @param _unlockBegin The time at which unlocking of tokens will begin.
-     * @param _unlockCliff The first time at which tokens are claimable.
-     * @param _unlockEnd The time at which the last token will unlock.
      * @param merkleProof A merkle proof proving the claim is valid.
      */
-    function claimTokens(
-        uint256 amount,
-        uint256 _unlockBegin,
-        uint256 _unlockCliff,
-        uint256 _unlockEnd,
-        bytes32[] calldata merkleProof
-    ) external {
+    function claimTokens(uint256 amount, bytes32[] calldata merkleProof) external {
         require(block.timestamp < claimPeriodEnds, "C4Token: Claim period ended");
         // we don't need to check that `merkleProof` has the correct length as
         // submitting a valid partial merkle proof would require `leaf` to map
@@ -74,9 +76,12 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
         claimed.set(index);
 
+        uint256 claimableAmount;
+        uint256 remainingAmount;
+
         unchecked {
-            uint256 claimableAmount = (amount * claimableProportion) / 10000;
-            uint256 remainingAmount = amount - claimableAmount;
+            claimableAmount = (amount * claimableProportion) / 10000;
+            remainingAmount = amount - claimableAmount;
         }
 
         emit Claim(msg.sender, claimableAmount);
@@ -85,7 +90,12 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         _transfer(address(this), msg.sender, claimableAmount);
 
         require(address(tokenLock) != address(0), "Vesting contract not initialized");
-        tokenLock.setupVesting(msg.sender, _unlockBegin, _unlockCliff, _unlockEnd);
+        tokenLock.setupVesting(
+            msg.sender,
+            block.timestamp,
+            block.timestamp,
+            block.timestamp + unlockEnd
+        );
         // approve TokenLock for token transfer
         _approve(address(this), address(tokenLock), remainingAmount);
         tokenLock.lock(msg.sender, remainingAmount);

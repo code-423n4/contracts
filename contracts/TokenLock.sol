@@ -36,11 +36,14 @@ contract TokenLock is Ownable {
      * @dev Constructor.
      * @param _token The token this contract will lock
      */
-    constructor(ERC20 _token) Ownable() {
+    constructor(ERC20 _token) {
         token = _token;
     }
 
-    // Set sale token contract address.
+    /**
+     * @dev set sale contract
+     * @param _tokenSale address of token sale contract
+     */
     function setTokenSale(address _tokenSale) external onlyOwner {
         require(_tokenSale != address(0), "Address != 0x");
         tokenSale = _tokenSale;
@@ -61,7 +64,7 @@ contract TokenLock is Ownable {
     ) external {
         require(
             msg.sender == owner() || msg.sender == address(token) || msg.sender == tokenSale,
-            "Only owner/ claims contract can call"
+            "Only owner/ claims/ sale contract can call"
         );
         require(
             _unlockCliff >= _unlockBegin,

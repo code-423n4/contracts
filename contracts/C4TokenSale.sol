@@ -20,7 +20,10 @@ contract TokenSale is Ownable {
     uint64 public immutable saleDuration;
     /// address receiving the proceeds of the sale
     address saleRecipient;
+    /// vesting contract
     IRevokableTokenLock public tokenLock;
+    ///
+    uint256 public unlockEnd;
 
     /// how many `tokenOut`s each address may buy
     mapping(address => uint256) public whitelistedBuyersAmount;
@@ -46,8 +49,9 @@ contract TokenSale is Ownable {
         uint64 _saleDuration,
         uint256 _tokenOutPrice,
         address _saleRecipient,
-        address _tokenLock
-    ) Ownable() {
+        address _tokenLock,
+        uint256 _unlockEnd // time after buying by which all the vested tokens have been unlocked.
+    ) {
         require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
         require(_saleDuration > 0, "TokenSale: the duration must not be zero");
         require(_tokenOutPrice > 0, "TokenSale: the price must not be zero");
@@ -62,6 +66,7 @@ contract TokenSale is Ownable {
         saleRecipient = _saleRecipient;
 
         tokenLock = IRevokableTokenLock(_tokenLock);
+        unlockEnd = _unlockEnd;
     }
 
     /**
@@ -69,12 +74,7 @@ contract TokenSale is Ownable {
      * @param _tokenOutAmount The amount of `tokenOut` to buy
      * @return tokenInAmount_ The amount of `tokenIn`s  bought.
      */
-    function buy(
-        uint256 _tokenOutAmount,
-        uint256 _unlockBegin,
-        uint256 _unlockCliff,
-        uint256 _unlockEnd
-    ) external returns (uint256 tokenInAmount_) {
+    function buy(uint256 _tokenOutAmount) external returns (uint256 tokenInAmount_) {
         require(saleStart <= block.timestamp, "TokenSale: not started");
         require(block.timestamp <= saleStart + saleDuration, "TokenSale: already ended");
         require(
@@ -93,9 +93,11 @@ contract TokenSale is Ownable {
             "TokenSale: tokenIn transfer failed"
         );
 
+        uint256 claimableAmount;
+        uint256 remainingAmount;
         unchecked {
-            uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
-            uint256 remainingAmount = _tokenOutAmount - claimableAmount;
+            claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
+            remainingAmount = _tokenOutAmount - claimableAmount;
         }
 
         require(
@@ -103,9 +105,14 @@ contract TokenSale is Ownable {
             "TokenSale: tokenOut transfer failed"
         );
 
-        tokenLock.setupVesting(msg.sender, _unlockBegin, _unlockCliff, _unlockEnd);
+        tokenLock.setupVesting(
+            msg.sender,
+            block.timestamp,
+            block.timestamp,
+            block.timestamp + unlockEnd
+        );
         // approve TokenLock for token transfer
-        tokenOut.approve(address(tokenLock), remainingAmount);
+        require(tokenOut.approve(address(tokenLock), remainingAmount), "Approve failed");
         tokenLock.lock(msg.sender, remainingAmount);
 
         emit Sale(msg.sender, tokenInAmount_, _tokenOutAmount);
