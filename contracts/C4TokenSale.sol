@@ -19,7 +19,7 @@ contract TokenSale is Ownable {
     /// duration of the token sale, cannot purchase afterwards
     uint64 public immutable saleDuration;
     /// address receiving the proceeds of the sale
-    address saleRecipient;
+    address internal saleRecipient;
     /// vesting contract
     IRevokableTokenLock public tokenLock;
     /// vesting duration
@@ -42,7 +42,7 @@ contract TokenSale is Ownable {
      * @param _tokenOutPrice The tokenIn per tokenOut price. precision should be in tokenInDecimals - tokenOutDecimals + 18
      * @param _saleRecipient The address receiving the proceeds of the sale
      * @param _tokenLock The contract in which _tokenOut will be vested in
-     * @param _vestDuration Vesting duration
+     * @param _vestDuration Token vesting duration
      */
     constructor(
         ERC20 _tokenIn,

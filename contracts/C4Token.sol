@@ -16,28 +16,36 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     using BitMaps for BitMaps.BitMap;
 
     bytes32 public merkleRoot;
-    // Proportion of airdropped tokens that are immediately claimable
-    // 10_000 = 100%
+    /// Proportion of airdropped tokens that are immediately claimable
+    /// 10_000 = 100%
     uint256 public immutable claimableProportion;
-    // Timestamp at which tokens are no longer claimable
+    /// Timestamp at which tokens are no longer claimable
     uint256 public immutable claimPeriodEnds;
-    // vesting contract
+    /// vesting contract
     IRevokableTokenLock public tokenLock;
     BitMaps.BitMap private claimed;
 
-    // time after claiming by which all the vested tokens have been unlocked.
-    uint256 public unlockEnd;
+    /// vesting duration
+    uint256 public vestDuration;
 
     event MerkleRootChanged(bytes32 merkleRoot);
     event Claim(address indexed claimant, uint256 amount);
     event Vest(address indexed claimant, uint256 amount);
 
+    /**
+     * @dev Constructor.
+     * @param _freeSupply The number of tokens to mint for contract deployer (then transferred to timelock controller after deployment)
+     * @param _airdropSupply The number of tokens to reserve for the airdrop
+     * @param _claimableProportion The value in BPS of the % of claimable vs vested
+     * @param _claimPeriodEnds The timestamp at which tokens are no longer claimable
+     * @param _vestDuration The token vesting duration
+     */
     constructor(
-        uint256 _freeSupply, // number of tokens to mint for contract deployer (then transferred to timelock controller after deployment)
-        uint256 _airdropSupply, // number of tokens to reserve for the airdrop
-        uint256 _claimableProportion, // value in BPS of the % of claimable vs vested
-        uint256 _claimPeriodEnds, // Timestamp at which tokens are no longer claimable
-        uint256 _unlockEnd // time after claiming by which all the vested tokens would have been unlocked.
+        uint256 _freeSupply,
+        uint256 _airdropSupply,
+        uint256 _claimableProportion, 
+        uint256 _claimPeriodEnds,
+        uint256 _vestDuration
     ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
         // TODO: Change Symbol TBD
         require(_claimableProportion <= 10_000, "claimable exceeds limit");
@@ -46,7 +54,7 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         _mint(address(this), _airdropSupply);
         claimableProportion = _claimableProportion;
         claimPeriodEnds = _claimPeriodEnds;
-        unlockEnd = _unlockEnd;
+        vestDuration = _vestDuration;
     }
 
     /**
@@ -94,7 +102,7 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
             msg.sender,
             block.timestamp,
             block.timestamp,
-            block.timestamp + unlockEnd
+            block.timestamp + vestDuration
         );
         // approve TokenLock for token transfer
         _approve(address(this), address(tokenLock), remainingAmount);
