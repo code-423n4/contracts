@@ -22,8 +22,8 @@ contract TokenSale is Ownable {
     address saleRecipient;
     /// vesting contract
     IRevokableTokenLock public tokenLock;
-    ///
-    uint256 public unlockEnd;
+    /// vesting duration
+    uint256 public vestDuration;
 
     /// how many `tokenOut`s each address may buy
     mapping(address => uint256) public whitelistedBuyersAmount;
@@ -40,7 +40,9 @@ contract TokenSale is Ownable {
      * @param _saleStart The time when tokens can be first purchased
      * @param _saleDuration The duration of the token sale
      * @param _tokenOutPrice The tokenIn per tokenOut price. precision should be in tokenInDecimals - tokenOutDecimals + 18
-     * @param _tokenOutPrice The address receiving the proceeds of the sale
+     * @param _saleRecipient The address receiving the proceeds of the sale
+     * @param _tokenLock The contract in which _tokenOut will be vested in
+     * @param _vestDuration Vesting duration
      */
     constructor(
         ERC20 _tokenIn,
@@ -50,11 +52,12 @@ contract TokenSale is Ownable {
         uint256 _tokenOutPrice,
         address _saleRecipient,
         address _tokenLock,
-        uint256 _unlockEnd // time after buying by which all the vested tokens have been unlocked.
+        uint256 _vestDuration
     ) {
         require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
-        require(_saleDuration > 0, "TokenSale: the duration must not be zero");
+        require(_saleDuration > 0, "TokenSale: the sale duration must not be zero");
         require(_tokenOutPrice > 0, "TokenSale: the price must not be zero");
+        require(_vestDuration > 0, "TokenSale: the vest duration must not be zero");
         require(_saleRecipient != address(0), "TokenSale: sale recipient should not be zero");
         require(_tokenLock != address(0), "Address cannot be 0x");
 
@@ -66,7 +69,7 @@ contract TokenSale is Ownable {
         saleRecipient = _saleRecipient;
 
         tokenLock = IRevokableTokenLock(_tokenLock);
-        unlockEnd = _unlockEnd;
+        vestDuration = _vestDuration;
     }
 
     /**
@@ -109,7 +112,7 @@ contract TokenSale is Ownable {
             msg.sender,
             block.timestamp,
             block.timestamp,
-            block.timestamp + unlockEnd
+            block.timestamp + vestDuration
         );
         // approve TokenLock for token transfer
         require(tokenOut.approve(address(tokenLock), remainingAmount), "Approve failed");
