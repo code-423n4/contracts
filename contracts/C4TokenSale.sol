@@ -4,6 +4,8 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import "../interfaces/IRevokableTokenLock.sol";
+
 /**
  * @dev Sells a token at a predetermined price to whitelisted buyers. The number of tokens each address can buy can be regulated.
  */
@@ -17,7 +19,11 @@ contract TokenSale is Ownable {
     /// duration of the token sale, cannot purchase afterwards
     uint64 public immutable saleDuration;
     /// address receiving the proceeds of the sale
-    address saleRecipient;
+    address internal saleRecipient;
+    /// vesting contract
+    IRevokableTokenLock public tokenLock;
+    /// vesting duration
+    uint256 public vestDuration;
 
     /// how many `tokenOut`s each address may buy
     mapping(address => uint256) public whitelistedBuyersAmount;
@@ -34,7 +40,9 @@ contract TokenSale is Ownable {
      * @param _saleStart The time when tokens can be first purchased
      * @param _saleDuration The duration of the token sale
      * @param _tokenOutPrice The tokenIn per tokenOut price. precision should be in tokenInDecimals - tokenOutDecimals + 18
-     * @param _tokenOutPrice The address receiving the proceeds of the sale
+     * @param _saleRecipient The address receiving the proceeds of the sale
+     * @param _tokenLock The contract in which _tokenOut will be vested in
+     * @param _vestDuration Token vesting duration
      */
     constructor(
         ERC20 _tokenIn,
@@ -42,12 +50,16 @@ contract TokenSale is Ownable {
         uint64 _saleStart,
         uint64 _saleDuration,
         uint256 _tokenOutPrice,
-        address _saleRecipient
-    ) Ownable() {
+        address _saleRecipient,
+        address _tokenLock,
+        uint256 _vestDuration
+    ) {
         require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
-        require(_saleDuration > 0, "TokenSale: the duration must not be zero");
+        require(_saleDuration > 0, "TokenSale: the sale duration must not be zero");
         require(_tokenOutPrice > 0, "TokenSale: the price must not be zero");
+        require(_vestDuration > 0, "TokenSale: the vest duration must not be zero");
         require(_saleRecipient != address(0), "TokenSale: sale recipient should not be zero");
+        require(_tokenLock != address(0), "Address cannot be 0x");
 
         tokenIn = _tokenIn;
         tokenOut = _tokenOut;
@@ -55,6 +67,9 @@ contract TokenSale is Ownable {
         saleDuration = _saleDuration;
         tokenOutPrice = _tokenOutPrice;
         saleRecipient = _saleRecipient;
+
+        tokenLock = IRevokableTokenLock(_tokenLock);
+        vestDuration = _vestDuration;
     }
 
     /**
@@ -80,11 +95,28 @@ contract TokenSale is Ownable {
             tokenIn.transferFrom(msg.sender, saleRecipient, tokenInAmount_),
             "TokenSale: tokenIn transfer failed"
         );
-        // TODO: deploy vesting contract for msg.sender and send funds there instead
+
+        uint256 claimableAmount;
+        uint256 remainingAmount;
+        unchecked {
+            claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
+            remainingAmount = _tokenOutAmount - claimableAmount;
+        }
+
         require(
-            tokenOut.transfer(msg.sender, _tokenOutAmount),
+            tokenOut.transfer(msg.sender, claimableAmount),
             "TokenSale: tokenOut transfer failed"
         );
+
+        tokenLock.setupVesting(
+            msg.sender,
+            block.timestamp,
+            block.timestamp,
+            block.timestamp + vestDuration
+        );
+        // approve TokenLock for token transfer
+        require(tokenOut.approve(address(tokenLock), remainingAmount), "Approve failed");
+        tokenLock.lock(msg.sender, remainingAmount);
 
         emit Sale(msg.sender, tokenInAmount_, _tokenOutAmount);
     }

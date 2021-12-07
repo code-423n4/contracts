@@ -10,42 +10,60 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Votes.sol";
 import "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 
 import "./MerkleProof.sol";
-import "./TokenLock.sol";
+import "../interfaces/IRevokableTokenLock.sol";
 
 contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     using BitMaps for BitMaps.BitMap;
 
     bytes32 public merkleRoot;
-    // Proportion of airdropped tokens that are immediately claimable
-    // 10000 = 100%
+    /// Proportion of airdropped tokens that are immediately claimable
+    /// 10_000 = 100%
     uint256 public immutable claimableProportion;
-    uint256 public immutable claimPeriodEnds; // Timestamp at which tokens are no longer claimable
-    TokenLock public immutable tokenLock;
+    /// Timestamp at which tokens are no longer claimable
+    uint256 public immutable claimPeriodEnds;
+    /// vesting contract
+    IRevokableTokenLock public tokenLock;
     BitMaps.BitMap private claimed;
+
+    /// vesting duration
+    uint256 public vestDuration;
 
     event MerkleRootChanged(bytes32 merkleRoot);
     event Claim(address indexed claimant, uint256 amount);
     event Vest(address indexed claimant, uint256 amount);
 
+    /**
+     * @dev Constructor.
+     * @param _freeSupply The number of tokens to mint for contract deployer (then transferred to timelock controller after deployment)
+     * @param _airdropSupply The number of tokens to reserve for the airdrop
+     * @param _claimableProportion The value in BPS of the % of claimable vs vested
+     * @param _claimPeriodEnds The timestamp at which tokens are no longer claimable
+     * @param _vestDuration The token vesting duration
+     */
     constructor(
-        uint256 _freeSupply, // number of tokens to mint for contract deployer (then transferred to timelock controller after deployment)
-        uint256 _airdropSupply, // number of tokens to reserve for the airdrop
-        uint256 _claimableProportion,
+        uint256 _freeSupply,
+        uint256 _airdropSupply,
+        uint256 _claimableProportion, 
         uint256 _claimPeriodEnds,
-        uint256 _vestStart // start timestamp of vesting period
+        uint256 _vestDuration
     ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
         // TODO: Change Symbol TBD
-        require(_claimableProportion <= 10000, "claimable exceeds limit");
+        require(_claimableProportion <= 10_000, "claimable exceeds limit");
+        require(_claimPeriodEnds > block.timestamp, "cannot have a backward time");
         _mint(msg.sender, _freeSupply);
         _mint(address(this), _airdropSupply);
         claimableProportion = _claimableProportion;
         claimPeriodEnds = _claimPeriodEnds;
-        tokenLock = new TokenLock(
-            ERC20(address(this)),
-            _vestStart, // _unlockBegin: vesting period starts at specified timestamp
-            _vestStart, // _unlockCliff: no cliff
-            _vestStart + 4 * 365 days // _unlockEnd: 4 year vesting period
-        );
+        vestDuration = _vestDuration;
+    }
+
+    /**
+     * @dev set vesting contract
+     * @param _tokenLock address of the vesting contract
+     */
+    function setTokenLock(address _tokenLock) external onlyOwner {
+        require(_tokenLock != address(0), "Address cannot be 0x");
+        tokenLock = IRevokableTokenLock(_tokenLock);
     }
 
     /**
@@ -53,13 +71,8 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param amount The amount of the claim being made.
      * @param merkleProof A merkle proof proving the claim is valid.
      */
-    function claimTokens(uint256 amount, bytes32[] calldata merkleProof)
-        external
-    {
-        require(
-            block.timestamp < claimPeriodEnds,
-            "C4Token: Claim period ended"
-        );
+    function claimTokens(uint256 amount, bytes32[] calldata merkleProof) external {
+        require(block.timestamp < claimPeriodEnds, "C4Token: Claim period ended");
         // we don't need to check that `merkleProof` has the correct length as
         // submitting a valid partial merkle proof would require `leaf` to map
         // to an intermediate hash in the merkle tree but `leaf` uses msg.sender
@@ -70,17 +83,31 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         require(!isClaimed(index), "C4Token: Tokens already claimed.");
 
         claimed.set(index);
-        uint256 claimableAmount = (amount * claimableProportion) / 10000;
-        uint256 remainingAmount = amount - claimableAmount;
+
+        uint256 claimableAmount;
+        uint256 remainingAmount;
+
+        unchecked {
+            claimableAmount = (amount * claimableProportion) / 10_000;
+            remainingAmount = amount - claimableAmount;
+        }
+
         emit Claim(msg.sender, claimableAmount);
-        emit Vest(msg.sender, remainingAmount);
 
         // transfer claimable proportion to caller
         _transfer(address(this), msg.sender, claimableAmount);
 
+        require(address(tokenLock) != address(0), "Vesting contract not initialized");
+        tokenLock.setupVesting(
+            msg.sender,
+            block.timestamp,
+            block.timestamp,
+            block.timestamp + vestDuration
+        );
         // approve TokenLock for token transfer
         _approve(address(this), address(tokenLock), remainingAmount);
         tokenLock.lock(msg.sender, remainingAmount);
+        emit Vest(msg.sender, remainingAmount);
     }
 
     /**
