@@ -80,7 +80,7 @@ contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         uint256 remainingAmount;
 
         unchecked {
-            claimableAmount = (amount * claimableProportion) / 10000;
+            claimableAmount = (amount * claimableProportion) / 10_000;
             remainingAmount = amount - claimableAmount;
         }
 
