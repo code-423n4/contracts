@@ -1,0 +1,71 @@
+// modified from https://github.com/Uniswap/merkle-distributor/blob/master/src/parse-balance-map.ts
+import BalanceTree from './balance-tree'
+import { BigNumber as BN, utils } from 'ethers'
+const { isAddress, getAddress } = utils
+
+interface MerkleDistributorInfo {
+  merkleRoot: string,
+  tokenTotal: string,
+  claims: {
+    [account: string]: {
+      amount: string
+      proof: string[]
+    }
+  }
+}
+
+type OldFormat = { [account: string]: number | string }
+type Format = { address: string; amount: number | string }
+export function parseBalanceMap(balances: OldFormat): MerkleDistributorInfo {
+  const formatBalances: Format[] = Object.keys(balances).map(
+    (account) => ({
+      address: account,
+      amount: balances[account]
+    })
+  )
+
+  const dataByAddress = formatBalances.reduce<{
+    [address: string]: { amount: BN; }
+  }>((memo, { address: account, amount }) => {
+    if (!isAddress(account)) {
+      throw new Error(`Found invalid address: ${account}`)
+    }
+    const parsed = getAddress(account)
+    if (memo[parsed]) throw new Error(`Duplicate address: ${parsed}`)
+    const parsedNum = BN.from(`0x${amount.toString(16)}`)
+    if (parsedNum.lte(0)) throw new Error(`Invalid amount for account: ${account}`)
+
+    memo[parsed] = { amount: parsedNum }
+    return memo
+  }, {})
+
+  const sortedAddresses = Object.keys(dataByAddress).sort()
+
+  // construct a tree
+  const tree = new BalanceTree(
+    sortedAddresses.map((address) => ({ account: address, amount: dataByAddress[address].amount }))
+  )
+
+  // generate claims
+  const claims = sortedAddresses.reduce<{
+    [address: string]: { amount: string; proof: string[]; }
+  }>((memo, address) => {
+    const { amount } = dataByAddress[address]
+    memo[address] = {
+      amount: amount.toHexString(),
+      proof: tree.getProof(address, amount)
+    }
+    return memo
+  }, {})
+
+  const tokenTotal: BN = sortedAddresses.reduce<BN>(
+    (memo, key) => memo.add(dataByAddress[key].amount),
+    BN.from(0)
+  )
+
+  return {
+    merkleRoot: tree.getHexRoot(),
+    tokenTotal: tokenTotal.toHexString(),
+    claims,
+  }
+}

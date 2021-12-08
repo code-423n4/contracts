@@ -6,6 +6,8 @@
   "scripts": {
     "test": "yarn test",
     "compile": "hardhat compile",
+    "generate-merkle-root": "ts-node ./scripts/airdrop/generate-merkle-root.ts",
+    "generate-merkle-root:example": "ts-node ./scripts/airdrop/generate-merkle-root.ts -i ./scripts/airdrop/example.json -o resultExample.json",
     "lint:check": "prettier --check '(contracts|interfaces)/**/*.(sol|json)'",
     "lint:write": "prettier -w '(contracts|interfaces)/**/*.(sol|json)'"
   },
@@ -35,6 +37,7 @@
     "@typescript-eslint/eslint-plugin": "^4.29.1",
     "@typescript-eslint/parser": "^4.29.1",
     "chai": "^4.2.0",
+    "commander": "^8.3.0",
     "dotenv": "^10.0.0",
     "eslint": "^7.29.0",
     "eslint-config-prettier": "^8.3.0",
@@ -44,13 +47,13 @@
     "eslint-plugin-prettier": "^3.4.0",
     "eslint-plugin-promise": "^5.1.0",
     "ethereum-waffle": "^3.0.0",
+    "ethereumjs-util": "^7.1.3",
     "ethers": "^5.0.0",
     "hardhat-gas-reporter": "^1.0.4",
     "prettier": "^2.3.2",
     "prettier-plugin-solidity": "^1.0.0-beta.19",
     "solhint": "^3.3.6",
     "solidity-coverage": "^0.7.16",
-    "ts-node": "^10.1.0",
     "typechain": "^5.1.2",
     "typescript": "^4.3.5"
   }
