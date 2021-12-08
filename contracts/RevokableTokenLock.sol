@@ -19,8 +19,8 @@ contract RevokableTokenLock is TokenLock {
         address _governance,
         address _revoker
     ) TokenLock(_token) {
-        require(_revoker != address(0), "revoker address cannot be set to 0");
-        require(_governance != address(0), "governance address cannot be set to 0");
+        require(_revoker != address(0), "RevokableTokenLock: revoker address cannot be set to 0");
+        require(_governance != address(0), "RevokableTokenLock: governance address cannot be set to 0");
         governance = _governance;
         revoker = _revoker;
     }
@@ -30,7 +30,7 @@ contract RevokableTokenLock is TokenLock {
      * @param _revoker The account to check the claimable balance of.
      */
     function setRevoker(address _revoker) external onlyOwner {
-        require(_revoker != address(0), "address != 0x");
+        require(_revoker != address(0), "RevokableTokenLock: null address");
         revoker = _revoker;
     }
 
@@ -51,13 +51,13 @@ contract RevokableTokenLock is TokenLock {
      * @param recipient The account whose access will be revoked.
      */
     function revoke(address recipient) external {
-        require(msg.sender == revoker || msg.sender == owner(), "onlyAuthorizedActors");
-        require(!isRevoked[recipient], "Access already revoked for owner");
+        require(msg.sender == revoker || msg.sender == owner(), "RevokableTokenLock: onlyAuthorizedActors");
+        require(!isRevoked[recipient], "RevokableTokenLock: Access already revoked for owner");
         isRevoked[recipient] = true;
 
         uint256 amount = vesting[recipient].lockedAmounts;
         if (amount > 0) {
-            require(token.transfer(governance, amount), "TokenLock: Transfer failed");
+            require(token.transfer(governance, amount), "RevokableTokenLock: Transfer failed");
             vesting[recipient].lockedAmounts = 0;
         }
 
