@@ -19,11 +19,11 @@ jobs:
       # By default, the branch whose changes caused the script to run is used
       - uses: actions/checkout@v2
 
-      # Configuring Node.js 15 to run on a virtual machine
-      - name: Use Node.js 15
+      # Configuring Node.js 14 to run on a virtual machine
+      - name: Use Node.js 14
         uses: actions/setup-node@v1
         with:
-          node-version: 15
+          node-version: 14
 
       # The described bash commands will be executed
       - name: Lint
