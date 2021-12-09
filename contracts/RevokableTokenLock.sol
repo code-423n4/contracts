@@ -7,43 +7,25 @@ import "./TokenLock.sol";
 
 /// @dev Same as TokenLock, but enables a revoker to end vesting prematurely and send locked tokens to governance.
 contract RevokableTokenLock is TokenLock {
-    address public governance;
     address public revoker;
-
-    mapping(address => bool) public isRevoked;
 
     event Revoked(address indexed revokedOwner, uint256 amount);
 
     constructor(
         ERC20 _token,
-        address _governance,
         address _revoker
     ) TokenLock(_token) {
-        require(_revoker != address(0), "revoker address cannot be set to 0");
-        require(_governance != address(0), "governance address cannot be set to 0");
-        governance = _governance;
+        require(_revoker != address(0), "RevokableTokenLock: revoker address cannot be set to 0");
         revoker = _revoker;
     }
 
     /**
      * @dev set revoker address
-     * @param _revoker The account to check the claimable balance of.
+     * @param _revoker The account with revoking rights
      */
     function setRevoker(address _revoker) external onlyOwner {
-        require(_revoker != address(0), "address != 0x");
+        require(_revoker != address(0), "RevokableTokenLock: null address");
         revoker = _revoker;
-    }
-
-    /**
-     * @dev override claimableBalance to return 0 if owner is revoked
-     * @param owner The account to check the claimable balance of.
-     * @return The number of tokens currently claimable.
-     */
-    function claimableBalance(address owner) public view override returns (uint256) {
-        if (isRevoked[owner]) {
-            return 0;
-        }
-        return super.claimableBalance(owner);
     }
 
     /**
@@ -51,16 +33,24 @@ contract RevokableTokenLock is TokenLock {
      * @param recipient The account whose access will be revoked.
      */
     function revoke(address recipient) external {
-        require(msg.sender == revoker || msg.sender == owner(), "onlyAuthorizedActors");
-        require(!isRevoked[recipient], "Access already revoked for owner");
-        isRevoked[recipient] = true;
+        require(msg.sender == revoker || msg.sender == owner(), "RevokableTokenLock: onlyAuthorizedActors");
 
-        uint256 amount = vesting[recipient].lockedAmounts;
-        if (amount > 0) {
-            require(token.transfer(governance, amount), "TokenLock: Transfer failed");
-            vesting[recipient].lockedAmounts = 0;
+        // claim any vested but unclaimed parts for recipient first
+        uint256 claimable = claimableBalance(recipient);
+        if (claimable > 0) {
+            vesting[recipient].claimedAmounts += claimable;
+            require(token.transfer(recipient, claimable), "TokenLock: Transfer failed");
+            emit Claimed(recipient, recipient, claimable);
         }
 
-        emit Revoked(recipient, amount);
+        // revoke the rest that is still being vested
+        uint256 remaining = vesting[recipient].lockedAmounts - vesting[recipient].claimedAmounts;
+        if (remaining > 0) {
+            require(token.transfer(owner(), remaining), "RevokableTokenLock: Transfer failed");
+            // no new claims
+            vesting[recipient].lockedAmounts = vesting[recipient].claimedAmounts;
+            vesting[recipient].unlockEnd = block.timestamp;
+        }
+        emit Revoked(recipient, remaining);
     }
 }

@@ -9,7 +9,8 @@
         "singleQuote": true,
         "bracketSpacing": false,
         "explicitTypes": "always",
-        "semi": true
+        "semi": true,
+        "endOfLine": "lf"
       }
     },
     {
@@ -21,7 +22,8 @@
         "singleQuote": true,
         "bracketSpacing": false,
         "explicitTypes": "always",
-        "semi": true
+        "semi": true,
+        "endOfLine": "lf"
       }
     },
     {
@@ -32,7 +34,8 @@
         "useTabs": false,
         "singleQuote": false,
         "bracketSpacing": false,
-        "explicitTypes": "always"
+        "explicitTypes": "always",
+        "endOfLine": "lf"
       }
     }
   ]

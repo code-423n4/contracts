@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
-contract Code4renaGovernor is
+contract C4Governor is
     Governor,
     GovernorSettings,
     GovernorCountingSimple,

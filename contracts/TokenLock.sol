@@ -45,7 +45,7 @@ contract TokenLock is Ownable {
      * @param _tokenSale address of token sale contract
      */
     function setTokenSale(address _tokenSale) external onlyOwner {
-        require(_tokenSale != address(0), "Address != 0x");
+        require(_tokenSale != address(0), "TokenLock: Null address");
         tokenSale = _tokenSale;
     }
 
@@ -64,15 +64,15 @@ contract TokenLock is Ownable {
     ) external {
         require(
             msg.sender == owner() || msg.sender == address(token) || msg.sender == tokenSale,
-            "Only owner/ claims/ sale contract can call"
+            "TokenLock: Only owner/ claims/ sale contract can call"
         );
         require(
             _unlockCliff >= _unlockBegin,
-            "ERC20Locked: Unlock cliff must not be before unlock begin"
+            "TokenLock: Unlock cliff must not be before unlock begin"
         );
         require(
             _unlockEnd >= _unlockCliff,
-            "ERC20Locked: Unlock end must not be before unlock cliff"
+            "TokenLock: Unlock end must not be before unlock cliff"
         );
         vesting[recipient].unlockBegin = _unlockBegin;
         vesting[recipient].unlockCliff = _unlockCliff;

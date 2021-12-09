@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import "./MerkleProof.sol";
 import "../interfaces/IRevokableTokenLock.sol";
 
-contract Code4rena is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
+contract C4Token is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     using BitMaps for BitMaps.BitMap;
 
     bytes32 public merkleRoot;
