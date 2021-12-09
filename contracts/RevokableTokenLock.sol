@@ -11,10 +11,7 @@ contract RevokableTokenLock is TokenLock {
 
     event Revoked(address indexed revokedOwner, uint256 amount);
 
-    constructor(
-        ERC20 _token,
-        address _revoker
-    ) TokenLock(_token) {
+    constructor(ERC20 _token, address _revoker) TokenLock(_token) {
         require(_revoker != address(0), "RevokableTokenLock: revoker address cannot be set to 0");
         revoker = _revoker;
     }
@@ -33,7 +30,10 @@ contract RevokableTokenLock is TokenLock {
      * @param recipient The account whose access will be revoked.
      */
     function revoke(address recipient) external {
-        require(msg.sender == revoker || msg.sender == owner(), "RevokableTokenLock: onlyAuthorizedActors");
+        require(
+            msg.sender == revoker || msg.sender == owner(),
+            "RevokableTokenLock: onlyAuthorizedActors"
+        );
 
         // claim any vested but unclaimed parts for recipient first
         uint256 claimable = claimableBalance(recipient);

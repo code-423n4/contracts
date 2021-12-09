@@ -43,7 +43,7 @@ contract C4Token is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     constructor(
         uint256 _freeSupply,
         uint256 _airdropSupply,
-        uint256 _claimableProportion, 
+        uint256 _claimableProportion,
         uint256 _claimPeriodEnds,
         uint256 _vestDuration
     ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
