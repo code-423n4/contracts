@@ -53,6 +53,7 @@ contract RevokableTokenLock is TokenLock {
             require(token.transfer(governance, remaining), "RevokableTokenLock: Transfer failed");
             // no new claims
             vesting[recipient].lockedAmounts = vesting[recipient].claimedAmounts;
+            vesting[recipient].unlockEnd = block.timestamp;
         }
         emit Revoked(recipient, remaining);
     }
