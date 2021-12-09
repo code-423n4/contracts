@@ -7,19 +7,15 @@ import "./TokenLock.sol";
 
 /// @dev Same as TokenLock, but enables a revoker to end vesting prematurely and send locked tokens to governance.
 contract RevokableTokenLock is TokenLock {
-    address public governance;
     address public revoker;
 
     event Revoked(address indexed revokedOwner, uint256 amount);
 
     constructor(
         ERC20 _token,
-        address _governance,
         address _revoker
     ) TokenLock(_token) {
         require(_revoker != address(0), "RevokableTokenLock: revoker address cannot be set to 0");
-        require(_governance != address(0), "RevokableTokenLock: governance address cannot be set to 0");
-        governance = _governance;
         revoker = _revoker;
     }
 
@@ -50,7 +46,7 @@ contract RevokableTokenLock is TokenLock {
         // revoke the rest that is still being vested
         uint256 remaining = vesting[recipient].lockedAmounts - vesting[recipient].claimedAmounts;
         if (remaining > 0) {
-            require(token.transfer(governance, remaining), "RevokableTokenLock: Transfer failed");
+            require(token.transfer(owner(), remaining), "RevokableTokenLock: Transfer failed");
             // no new claims
             vesting[recipient].lockedAmounts = vesting[recipient].claimedAmounts;
             vesting[recipient].unlockEnd = block.timestamp;
