@@ -1,0 +1,30 @@
+# Script name
+name: Lint code
+
+# Prerequisites for execution: any actions with the pool-request
+on: [pull_request]
+
+# Task list
+jobs:
+  lint:
+    # Task name
+    name: Lint Code
+
+    # Run on a virtual machine with Ubuntu
+    runs-on: ubuntu-latest
+
+    # List of steps
+    steps:
+      # Use project code from a specific commit
+      # By default, the branch whose changes caused the script to run is used
+      - uses: actions/checkout@v2
+
+      # Configuring Node.js 15 to run on a virtual machine
+      - name: Use Node.js 15
+        uses: actions/setup-node@v1
+        with:
+          node-version: 15
+
+      # The described bash commands will be executed
+      - name: Lint
+        run: yarn && yarn lint:check
