@@ -14,8 +14,8 @@ interface MerkleDistributorInfo {
   }
 }
 
-type OldFormat = { [account: string]: number | string }
-type Format = { address: string; amount: number | string }
+type OldFormat = { [account: string]: string }
+type Format = { address: string; amount: string }
 export function parseBalanceMap(balances: OldFormat): MerkleDistributorInfo {
   const formatBalances: Format[] = Object.keys(balances).map(
     (account) => ({
@@ -32,7 +32,9 @@ export function parseBalanceMap(balances: OldFormat): MerkleDistributorInfo {
     }
     const parsed = getAddress(account)
     if (memo[parsed]) throw new Error(`Duplicate address: ${parsed}`)
-    const parsedNum = BN.from(`0x${amount.toString(16)}`)
+    // make sure all input amounts are strings, otherwise we already have precision errors when parsing the file and converting to Number
+    if(typeof amount !== `string`) throw new Error(`Amount in input not a string: ${amount}`)
+    const parsedNum = BN.from(amount)
     if (parsedNum.lte(0)) throw new Error(`Invalid amount for account: ${account}`)
 
     memo[parsed] = { amount: parsedNum }
@@ -52,7 +54,7 @@ export function parseBalanceMap(balances: OldFormat): MerkleDistributorInfo {
   }>((memo, address) => {
     const { amount } = dataByAddress[address]
     memo[address] = {
-      amount: amount.toHexString(),
+      amount: amount.toString(),
       proof: tree.getProof(address, amount)
     }
     return memo
@@ -65,7 +67,7 @@ export function parseBalanceMap(balances: OldFormat): MerkleDistributorInfo {
 
   return {
     merkleRoot: tree.getHexRoot(),
-    tokenTotal: tokenTotal.toHexString(),
+    tokenTotal: tokenTotal.toString(),
     claims,
   }
 }
