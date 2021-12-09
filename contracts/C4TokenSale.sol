@@ -58,7 +58,7 @@ contract TokenSale is Ownable {
         require(_saleDuration > 0, "TokenSale: the sale duration must not be zero");
         require(_tokenOutPrice > 0, "TokenSale: the price must not be zero");
         require(_vestDuration > 0, "TokenSale: the vest duration must not be zero");
-        require(_saleRecipient != address(0), "TokenSale: sale recipient should not be zero");
+        require(_saleRecipient != address(0) && _saleRecipient != address(this), "TokenSale: sale recipient should not be zero or this");
         require(_tokenLock != address(0), "Address cannot be 0x");
 
         tokenIn = _tokenIn;
@@ -96,10 +96,10 @@ contract TokenSale is Ownable {
             "TokenSale: tokenIn transfer failed"
         );
 
-        uint256 claimableAmount;
+        uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
         uint256 remainingAmount;
         unchecked {
-            claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
+            // this subtraction does not underflow as claimableAmount is a percentage on _tokenAmount
             remainingAmount = _tokenOutAmount - claimableAmount;
         }
 
@@ -108,6 +108,8 @@ contract TokenSale is Ownable {
             "TokenSale: tokenOut transfer failed"
         );
 
+        // if we use same tokenLock instance as airdrop, we make sure that
+        // the claimers and buyers are distinct to not reinitialize vesting
         tokenLock.setupVesting(
             msg.sender,
             block.timestamp,
@@ -141,7 +143,7 @@ contract TokenSale is Ownable {
     }
 
     /**
-     * @dev Transfers out any remaining `tokenOut` after the sale
+     * @dev Transfers out any remaining `tokenOut` after the sale to owner
      */
     function sweepTokenOut() external {
         require(saleStart + saleDuration < block.timestamp, "TokenSale: sale did not end yet");
