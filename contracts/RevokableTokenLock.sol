@@ -10,8 +10,6 @@ contract RevokableTokenLock is TokenLock {
     address public governance;
     address public revoker;
 
-    mapping(address => bool) public isRevoked;
-
     event Revoked(address indexed revokedOwner, uint256 amount);
 
     constructor(
@@ -40,8 +38,6 @@ contract RevokableTokenLock is TokenLock {
      */
     function revoke(address recipient) external {
         require(msg.sender == revoker || msg.sender == owner(), "RevokableTokenLock: onlyAuthorizedActors");
-        require(!isRevoked[recipient], "RevokableTokenLock: Access already revoked for owner");
-        isRevoked[recipient] = true;
 
         // claim any vested but unclaimed parts for recipient first
         uint256 claimable = claimableBalance(recipient);
