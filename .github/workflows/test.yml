@@ -1,0 +1,32 @@
+# Script name
+name: Compile and run hardhat tests
+
+# Prerequisites for execution: any actions with the pool-request
+on: [pull_request]
+
+# Task list
+jobs:
+  test:
+    # Task name
+    name: Compile contracts & run tests
+
+    # Run on a virtual machine with Ubuntu
+    runs-on: ubuntu-latest
+
+    # List of steps
+    steps:
+      # Use project code from a specific commit
+      # By default, the branch whose changes caused the script to run is used
+      - uses: actions/checkout@v2
+
+      # Configuring Node.js 14 to run on a virtual machine
+      - name: Use Node.js 14
+        uses: actions/setup-node@v1
+        with:
+          node-version: 14
+
+      # The described bash commands will be executed
+      - name: Compile
+        run: yarn && yarn compile
+      - name: Test
+        run: yarn test-no-compile
