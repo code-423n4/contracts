@@ -19,7 +19,7 @@ contract ArenaGovernor is
         GovernorSettings(
             1, /* 1 block */
             302400, /* 1 week */
-            50000e18 /* minimum proposal threshold of 50000 tokens */
+            50_000e18 /* minimum proposal threshold of 50_000 tokens */
         )
         GovernorVotes(_token)
         GovernorTimelockControl(_timelock)
