@@ -1,7 +1,7 @@
 {
   "name": "c4genesisdao",
   "version": "1.0.0",
-  "description": "Code 423n4 Genesis DAO",
+  "description": "Code4rena Genesis DAO",
   "main": "hardhat.config.ts",
   "scripts": {
     "test": "yarn test",
