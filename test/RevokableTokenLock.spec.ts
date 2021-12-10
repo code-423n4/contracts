@@ -1,4 +1,5 @@
 import {expect} from 'chai';
+import {BigNumber} from 'ethers';
 import {ethers, waffle} from 'hardhat';
 import {IERC20, RevokableTokenLock} from '../typechain';
 import {ZERO_ADDRESS, HOUR} from './shared/Constants';
@@ -53,6 +54,19 @@ describe('RevokableTokenLock', async () => {
     });
   });
   describe('#revoke', async () => {
+    const amount = ethers.utils.parseEther('20');
+    let transferred: BigNumber;
+    let remaining: BigNumber;
+    let unlockBegin: BigNumber;
+    let unlockCliff: BigNumber;
+    let unlockEnd: BigNumber;
+    let claimedAmounts: BigNumber;
+    let lockedAmounts: BigNumber;
+    before('Set up data', async () => {
+      ({unlockBegin, unlockCliff, unlockEnd} = await revokableTokenLock.vesting(recipient.address));
+      transferred = amount.mul(unlockCliff.sub(unlockBegin)).div(unlockEnd.sub(unlockBegin));
+      remaining = amount.sub(transferred);
+    });
     it('should revert if caller is not owner or revoker', async () => {
       await expect(revokableTokenLock.connect(other).revoke(recipient.address)).to.be.revertedWith(
         'RevokableTokenLock: onlyAuthorizedActors'
@@ -65,23 +79,17 @@ describe('RevokableTokenLock', async () => {
       await expect(revokableTokenLock.revoke(recipient.address)).to.not.be.reverted;
     });
     it('should claim any tokens vested and revoke the rest when revoke is called', async () => {
-      // Set up data
-      const before = ethers.utils.parseEther('100000000');
-      const amount = ethers.utils.parseEther('20');
-      let {unlockBegin, unlockCliff, unlockEnd, claimedAmounts, lockedAmounts} = await revokableTokenLock.vesting(
-        recipient.address
-      );
+      // TODO: how to move this into a fixture?
       await token.approve(revokableTokenLock.address, amount);
       await revokableTokenLock.lock(recipient.address, amount);
       await setNextBlockTimestamp(unlockCliff.toNumber());
 
-      // Call revoke
-      await revokableTokenLock.revoke(recipient.address);
-
-      // Check token balances
-      const transferred = amount.mul(unlockCliff.sub(unlockBegin)).div(unlockEnd.sub(unlockBegin));
-      expect(await token.balanceOf(recipient.address)).to.equal(transferred);
-      expect(await token.balanceOf(owner.address)).to.equal(before.sub(transferred));
+      // Call revoke and check token balances
+      await expect(() => revokableTokenLock.revoke(recipient.address)).to.changeTokenBalances(
+        token,
+        [recipient, owner],
+        [transferred, remaining]
+      );
 
       // Check contract values
       ({unlockEnd, claimedAmounts, lockedAmounts} = await revokableTokenLock.vesting(recipient.address));
@@ -90,10 +98,7 @@ describe('RevokableTokenLock', async () => {
       expect(unlockEnd).to.equal(unlockCliff);
     });
     it('should emit the Revoked event when revoke is called', async () => {
-      // Set up data
-      const amount = ethers.utils.parseEther('20');
-      const {unlockBegin, unlockCliff, unlockEnd} = await revokableTokenLock.vesting(recipient.address);
-      const transferred = amount.mul(unlockCliff.sub(unlockBegin)).div(unlockEnd.sub(unlockBegin));
+      // TODO: how to move this into a fixture?
       await token.approve(revokableTokenLock.address, amount);
       await revokableTokenLock.lock(recipient.address, amount);
       await setNextBlockTimestamp(unlockCliff.toNumber());
@@ -101,7 +106,8 @@ describe('RevokableTokenLock', async () => {
       // Call revoke
       expect(await revokableTokenLock.revoke(recipient.address))
         .to.emit(revokableTokenLock, 'Revoked')
-        .withArgs(recipient.address, amount.sub(transferred));
+        .withArgs(recipient.address, remaining);
     });
+    // TODO: mock revert on transfers to test transfer fails
   });
 });
