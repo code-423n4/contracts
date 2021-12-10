@@ -9,7 +9,7 @@ const {loadFixture} = waffle;
 let token: IERC20;
 let revokableTokenLock: RevokableTokenLock;
 
-describe('TokenLock', async () => {
+describe('RevokableTokenLock', async () => {
   const [owner, revoker, recipient, other] = waffle.provider.getWallets();
 
   // TODO: maybe create shared fixtures that can be imported by the test files
