@@ -139,6 +139,7 @@ contract TokenSale is Ownable {
             _buyers.length == _newTokenOutAmounts.length,
             "TokenSale: parameter length mismatch"
         );
+        require(block.timestamp < saleStart, "TokenSale: sale already started");
 
         for (uint256 i = 0; i < _buyers.length; i++) {
             whitelistedBuyersAmount[_buyers[i]] = _newTokenOutAmounts[i];
