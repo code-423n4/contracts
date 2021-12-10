@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
-contract C4Governor is
+contract ArenaGovernor is
     Governor,
     GovernorSettings,
     GovernorCountingSimple,
@@ -17,7 +17,7 @@ contract C4Governor is
     GovernorTimelockControl
 {
     constructor(ERC20Votes _token, TimelockController _timelock)
-        Governor("Code4renaGovernor")
+        Governor("CodeArenaGovernor")
         GovernorSettings(
             1, /* 1 block */
             302400, /* 1 week */

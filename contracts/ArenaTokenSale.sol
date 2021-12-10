@@ -12,7 +12,7 @@ import "../interfaces/IRevokableTokenLock.sol";
 contract TokenSale is Ownable {
     /// token to take in (USDC)
     ERC20 public immutable tokenIn;
-    /// token to give out (C4)
+    /// token to give out (ARENA)
     ERC20 public immutable tokenOut;
     /// time when tokens can be first purchased
     uint64 public immutable saleStart;

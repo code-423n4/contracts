@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/structs/BitMaps.sol";
 import "./MerkleProof.sol";
 import "../interfaces/IRevokableTokenLock.sol";
 
-contract C4Token is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
+contract ArenaToken is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     using BitMaps for BitMaps.BitMap;
 
     bytes32 public merkleRoot;
@@ -46,7 +46,7 @@ contract C4Token is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         uint256 _claimableProportion,
         uint256 _claimPeriodEnds,
         uint256 _vestDuration
-    ) ERC20("Code4rena", "C4") ERC20Permit("Code4rena") {
+    ) ERC20("Code4rena", "ARENA") ERC20Permit("Code4rena") {
         // TODO: Change Symbol TBD
         require(_claimableProportion <= 10_000, "claimable exceeds limit");
         require(_claimPeriodEnds > block.timestamp, "cannot have a backward time");
@@ -72,15 +72,15 @@ contract C4Token is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param merkleProof A merkle proof proving the claim is valid.
      */
     function claimTokens(uint256 amount, bytes32[] calldata merkleProof) external {
-        require(block.timestamp < claimPeriodEnds, "C4Token: Claim period ended");
+        require(block.timestamp < claimPeriodEnds, "ArenaToken: Claim period ended");
         // we don't need to check that `merkleProof` has the correct length as
         // submitting a valid partial merkle proof would require `leaf` to map
         // to an intermediate hash in the merkle tree but `leaf` uses msg.sender
         // which is 20 bytes instead of 32 bytes and can't be chosen arbitrarily
         bytes32 leaf = keccak256(abi.encodePacked(msg.sender, amount));
         (bool valid, uint256 index) = MerkleProof.verify(merkleProof, merkleRoot, leaf);
-        require(valid, "C4Token: Valid proof required.");
-        require(!isClaimed(index), "C4Token: Tokens already claimed.");
+        require(valid, "ArenaToken: Valid proof required.");
+        require(!isClaimed(index), "ArenaToken: Tokens already claimed.");
 
         claimed.set(index);
 
@@ -115,7 +115,7 @@ contract C4Token is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param dest The address to sweep the tokens to.
      */
     function sweep(address dest) external onlyOwner {
-        require(block.timestamp >= claimPeriodEnds, "C4Token: Claim period not yet ended");
+        require(block.timestamp >= claimPeriodEnds, "ArenaToken: Claim period not yet ended");
         _transfer(address(this), dest, balanceOf(address(this)));
     }
 
@@ -132,7 +132,7 @@ contract C4Token is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param _merkleRoot The merkle root to set.
      */
     function setMerkleRoot(bytes32 _merkleRoot) external onlyOwner {
-        require(merkleRoot == bytes32(0), "C4Token: Merkle root already set");
+        require(merkleRoot == bytes32(0), "ArenaToken: Merkle root already set");
         merkleRoot = _merkleRoot;
         emit MerkleRootChanged(_merkleRoot);
     }
