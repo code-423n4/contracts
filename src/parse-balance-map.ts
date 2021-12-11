@@ -50,10 +50,10 @@ export function parseBalanceMap(balances: OldFormat): MerkleDistributorInfo {
   // generate claims
   const claims = sortedAddresses.reduce<{
     [address: string]: {index: number; amount: string; proof: string[]};
-  }>((memo, address, index) => {
+  }>((memo, address) => {
     const {amount} = dataByAddress[address];
     memo[address] = {
-      index,
+      index: tree.getLeafIndex(address, amount),
       amount: amount.toString(),
       proof: tree.getProof(address, amount),
     };

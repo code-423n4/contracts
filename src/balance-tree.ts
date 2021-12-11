@@ -1,6 +1,7 @@
 // modified from https://github.com/Uniswap/merkle-distributor/blob/master/src/balance-tree.ts
 import MerkleTree from './merkle-tree';
 import {BigNumber as BN, utils} from 'ethers';
+import {keccak256} from 'ethereumjs-util';
 
 export default class BalanceTree {
   private readonly tree: MerkleTree;
@@ -33,5 +34,29 @@ export default class BalanceTree {
   // returns the hex bytes32 values of the proof
   public getProof(account: string, amount: BN): string[] {
     return this.tree.getHexProof(BalanceTree.toNode(account, amount));
+  }
+
+  // returns the same leaf index the contract is using
+  public getLeafIndex(account: string, amount: BN): number {
+    let computedHash = BalanceTree.toNode(account, amount); // leaf
+    let proof = this.tree.getProof(computedHash);
+    let index = 0;
+
+    for (let i = 0; i < proof.length; i++) {
+      index *= 2;
+      let proofElement = proof[i];
+
+      if (computedHash.compare(proofElement) != 1) {
+        // computedHash <= proofElement
+        computedHash = keccak256(Buffer.concat([computedHash, proofElement]));
+      } else {
+        computedHash = keccak256(Buffer.concat([proofElement, computedHash]));
+        index += 1;
+      }
+    }
+
+    if (this.tree.getRoot().compare(computedHash) !== 0) throw new Error('getLeafIndex did not recompute correct root');
+
+    return index;
   }
 }
