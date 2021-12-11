@@ -30,7 +30,6 @@ describe('TokenSale', async () => {
   const [user, admin, saleRecipient, buyer1, buyer2, other] = waffle.provider.getWallets();
   WHITELISTED_ACCOUNTS.push(buyer1.address, buyer2.address);
 
-  // TODO: maybe create shared fixtures that can be imported by the test files
   async function fixture() {
     let TokenFactory = await ethers.getContractFactory('TestERC20');
     let tokenIn = (await TokenFactory.connect(admin).deploy('USDC', 'USDC')) as IERC20;
@@ -109,6 +108,11 @@ describe('TokenSale', async () => {
   });
 
   describe('#sweepTokenOut', async () => {
+    it('should revert if called before token end', async () => {
+      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION - 1]);
+      await expect(tokenSale.connect(user).sweepTokenOut()).to.be.revertedWith('TokenSale: sale did not end yet');
+    });
+
     it('should send back any remaining tokenOut', async () => {
       await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION + 1]);
 
