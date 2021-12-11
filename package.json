@@ -4,7 +4,7 @@
   "description": "Code4rena Genesis DAO",
   "main": "hardhat.config.ts",
   "scripts": {
-    "test": "yarn test",
+    "test": "yarn hardhat test",
     "test-no-compile": "TS_NODE_TRANSPILE_ONLY=1 yarn hardhat test --no-compile",
     "compile": "yarn hardhat compile",
     "generate-merkle-root": "ts-node ./scripts/airdrop/generate-merkle-root.ts",
