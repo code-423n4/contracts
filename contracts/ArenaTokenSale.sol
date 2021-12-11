@@ -102,7 +102,7 @@ contract TokenSale is Ownable {
         uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
         uint256 remainingAmount;
         unchecked {
-            // this subtraction does not underflow as claimableAmount is a percentage on _tokenAmount
+            // this subtraction does not underflow as claimableAmount is a percentage on _tokenOutAmount
             remainingAmount = _tokenOutAmount - claimableAmount;
         }
 
