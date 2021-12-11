@@ -3,30 +3,31 @@ pragma solidity 0.8.10;
 
 import "@openzeppelin/contracts/governance/Governor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorCountingSimple.sol";
+import "@openzeppelin/contracts/governance/compatibility/GovernorCompatibilityBravo.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
-import "@openzeppelin/contracts/governance/extensions/GovernorVotesQuorumFraction.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
 contract ArenaGovernor is
     Governor,
     GovernorSettings,
-    GovernorCountingSimple,
+    GovernorCompatibilityBravo,
     GovernorVotes,
-    GovernorVotesQuorumFraction,
     GovernorTimelockControl
 {
     constructor(ERC20Votes _token, TimelockController _timelock)
-        Governor("CodeArenaGovernor")
+        Governor("ArenaGovernor")
         GovernorSettings(
             1, /* 1 block */
             302400, /* 1 week */
-            50000e18
+            50_000e18 /* minimum proposal threshold of 50_000 tokens */
         )
         GovernorVotes(_token)
-        GovernorVotesQuorumFraction(1) // 1%
         GovernorTimelockControl(_timelock)
     {}
+
+    function quorum(uint256 blockNumber) public pure override returns (uint256) {
+        return 10_000_000e18; // 10M tokens
+    }
 
     // The following functions are overrides required by Solidity.
 
@@ -36,15 +37,6 @@ contract ArenaGovernor is
 
     function votingPeriod() public view override(IGovernor, GovernorSettings) returns (uint256) {
         return super.votingPeriod();
-    }
-
-    function quorum(uint256 blockNumber)
-        public
-        view
-        override(IGovernor, GovernorVotesQuorumFraction)
-        returns (uint256)
-    {
-        return super.quorum(blockNumber);
     }
 
     function getVotes(address account, uint256 blockNumber)
@@ -59,7 +51,7 @@ contract ArenaGovernor is
     function state(uint256 proposalId)
         public
         view
-        override(Governor, GovernorTimelockControl)
+        override(Governor, IGovernor, GovernorTimelockControl)
         returns (ProposalState)
     {
         return super.state(proposalId);
@@ -70,7 +62,7 @@ contract ArenaGovernor is
         uint256[] memory values,
         bytes[] memory calldatas,
         string memory description
-    ) public override(Governor, IGovernor) returns (uint256) {
+    ) public override(Governor, GovernorCompatibilityBravo, IGovernor) returns (uint256) {
         return super.propose(targets, values, calldatas, description);
     }
 
@@ -114,7 +106,7 @@ contract ArenaGovernor is
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(Governor, GovernorTimelockControl)
+        override(Governor, IERC165, GovernorTimelockControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
