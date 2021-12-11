@@ -46,6 +46,11 @@ describe('TokenSale', async () => {
       ONE_DAY
     )) as TokenSale;
     await tokenSale.changeWhiteList(WHITELISTED_ACCOUNTS, WHITELISTED_AMOUNTS);
+    // send tokenOuts to contract
+    await tokenOut.connect(admin).transfer(
+      tokenSale.address,
+      WHITELISTED_AMOUNTS.reduce((acc, amount) => acc.add(amount), BN.from(`0`))
+    );
 
     return {tokenIn, tokenOut, tokenSale};
   }
@@ -55,10 +60,10 @@ describe('TokenSale', async () => {
   });
 
   describe('#changeWhiteList', async () => {
-    beforeEach('deploy fixture', async () => {
+    beforeEach('reset time', async () => {
       // don't start sale yet
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [SALE_START - ONE_DAY])
-    })
+      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START - ONE_DAY]);
+    });
 
     it('should revert if caller is not owner or seller', async () => {
       await expect(
@@ -70,27 +75,44 @@ describe('TokenSale', async () => {
     });
 
     it('should allow owner and seller to set', async () => {
-      let buyers = [...WHITELISTED_ACCOUNTS, other.address]
-      let amounts = [...WHITELISTED_AMOUNTS, 69]
+      let buyers = [...WHITELISTED_ACCOUNTS, other.address];
+      let amounts = [...WHITELISTED_AMOUNTS, 69];
       await tokenSale.connect(admin).changeWhiteList(buyers, amounts);
-      
+
       // seller modifies first entry
-      let diff = buyers.slice(0, 1)
-      let diffAmounts = [420]
+      let diff = buyers.slice(0, 1);
+      let diffAmounts = [420];
       await tokenSale.connect(saleRecipient).changeWhiteList(diff, diffAmounts);
 
-      for(let i = 0; i < buyers.length; i++) {
-        let mergedAmount = i === 0 ? diffAmounts[i] : amounts[i]
+      for (let i = 0; i < buyers.length; i++) {
+        let mergedAmount = i === 0 ? diffAmounts[i] : amounts[i];
         expect(await tokenSale.whitelistedBuyersAmount(buyers[i])).to.eq(mergedAmount);
       }
     });
 
     it('should revert if sale already started', async () => {
-      await hre.network.provider.send("evm_setNextBlockTimestamp", [SALE_START])
+      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START]);
       await expect(
         tokenSale.connect(admin).changeWhiteList(WHITELISTED_ACCOUNTS, WHITELISTED_AMOUNTS)
       ).to.be.revertedWith('TokenSale: sale already started');
     });
+  });
 
+  describe('#sweepTokenOut', async () => {
+    it('should revert if called before token end', async () => {
+      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION - 1]);
+      await expect(tokenSale.connect(user).sweepTokenOut()).to.be.revertedWith('TokenSale: sale did not end yet');
+    });
+
+    it('should send back any remaining tokenOut', async () => {
+      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION + 1]);
+
+      let preTokenOut = await tokenOut.balanceOf(admin.address);
+      await tokenSale.connect(other).sweepTokenOut();
+      let postTokenOut = await tokenOut.balanceOf(admin.address);
+      await expect(postTokenOut.sub(preTokenOut)).to.eq(
+        WHITELISTED_AMOUNTS.reduce((acc, amount) => acc.add(amount), BN.from(`0`))
+      );
+    });
   });
 });
