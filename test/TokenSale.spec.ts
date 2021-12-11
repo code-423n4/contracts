@@ -109,11 +109,6 @@ describe('TokenSale', async () => {
   });
 
   describe('#sweepTokenOut', async () => {
-    it('should revert if called before token end', async () => {
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION - 1]);
-      await expect(tokenSale.connect(user).sweepTokenOut()).to.be.revertedWith('TokenSale: sale did not end yet');
-    });
-
     it('should send back any remaining tokenOut', async () => {
       await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION + 1]);
 
@@ -123,6 +118,34 @@ describe('TokenSale', async () => {
       await expect(postTokenOut.sub(preTokenOut)).to.eq(
         WHITELISTED_AMOUNTS.reduce((acc, amount) => acc.add(amount), BN.from(`0`))
       );
+    });
+  });
+
+  describe('#sweep', async () => {
+    let otherToken: IERC20;
+    beforeEach('distribute other token', async () => {
+      let TokenFactory = await ethers.getContractFactory('TestERC20');
+      otherToken = (await TokenFactory.connect(admin).deploy('OTHER', 'OTHER')) as IERC20;
+      await otherToken.transfer(tokenSale.address, ONE_18);
+    });
+
+    it('should revert if caller is not owner or seller', async () => {
+      await expect(tokenSale.connect(user).sweep(otherToken.address)).to.be.revertedWith('TokenSale: not authorized');
+      await expect(tokenSale.connect(other).sweep(otherToken.address)).to.be.revertedWith('TokenSale: not authorized');
+    });
+
+    it('should not allow sending back the tokenOut', async () => {
+      await expect(tokenSale.connect(admin).sweep(tokenOut.address)).to.be.revertedWith(
+        'TokenSale: cannot sweep tokenOut as it belongs to owner'
+      );
+    });
+
+    it('should allow sweeping other tokens', async () => {
+      await tokenSale.connect(saleRecipient).sweep(otherToken.address);
+      let saleBalance = await otherToken.balanceOf(tokenSale.address);
+      expect(saleBalance).to.eq(`0`);
+      let sellerBalance = await otherToken.balanceOf(saleRecipient.address);
+      expect(sellerBalance).to.eq(ONE_18);
     });
   });
 
