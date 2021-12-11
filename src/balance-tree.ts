@@ -46,8 +46,8 @@ export default class BalanceTree {
       index *= 2;
       let proofElement = proof[i];
 
-      if (computedHash.compare(proofElement) != 1) {
-        // computedHash <= proofElement
+      // computedHash <= proofElement
+      if (computedHash.compare(proofElement) !== 1) {
         computedHash = keccak256(Buffer.concat([computedHash, proofElement]));
       } else {
         computedHash = keccak256(Buffer.concat([proofElement, computedHash]));
