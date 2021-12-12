@@ -20,7 +20,7 @@ const ONE_ARENA = ethers.utils.parseUnits(`1`, ARENA_DECIMALS);
 // Polygon USDC only has 6 decimals
 const TOKEN_IN_DECIMALS = 6;
 const ONE_USDC = ethers.utils.parseUnits(`1`, TOKEN_IN_DECIMALS);
-// 0.05 USDC per 1 ARENA (0.05e6 * 1e18 / 1*1e18)
+// 0.05 USDC per 1.0 ARENA (0.05e6 * 1e18 / 1*1e18)
 const TOKEN_OUT_PRICE = ethers.utils.parseUnits(`0.05`, TOKEN_IN_DECIMALS).mul(ONE_18).div(ONE_ARENA);
 const SALE_DURATION = 7 * ONE_DAY;
 const WHITELISTED_ACCOUNTS: string[] = [];
@@ -224,7 +224,7 @@ describe('TokenSale', async () => {
       let postBuyerTokenInBalance = await tokenIn.balanceOf(buyer1.address);
       let tokenInPaid = preBuyerTokenInBalance.sub(postBuyerTokenInBalance);
 
-      // 0.05 USDC per ARENA => buying 1000 ARENA should cost 0.05 USDC / ARENA * 1000 ARENA = 50 USDC
+      // 0.05 USDC per ARENA => buying 1000.0 ARENA should cost 0.05 USDC / ARENA * 1000.0 ARENA = 50.0 USDC
       let expectedTokenIn = ethers.utils.parseUnits(`50`, TOKEN_IN_DECIMALS);
       expect(tokenInPaid).eq(expectedTokenIn);
 
