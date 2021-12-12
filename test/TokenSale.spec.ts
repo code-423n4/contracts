@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import chai from 'chai';
 import hre, {ethers, waffle} from 'hardhat';
-import {IERC20, TokenLock, TokenSale} from '../typechain';
+import {IERC20, RevokableTokenLock, TokenSale} from '../typechain';
 import {ZERO_ADDRESS, BN, MAX_UINT} from './shared/Constants';
 import {BigNumber} from 'ethers';
 
@@ -10,7 +10,7 @@ chai.use(solidity);
 
 let tokenIn: IERC20;
 let tokenOut: IERC20;
-let tokenLock: TokenLock;
+let tokenLock: RevokableTokenLock;
 let tokenSale: TokenSale;
 const SALE_START = Math.floor(new Date(`2021-12-24T12:00:00.000Z`).getTime() / 1000);
 const ONE_DAY = 24 * 60 * 60;
@@ -34,8 +34,8 @@ describe('TokenSale', async () => {
     let TokenFactory = await ethers.getContractFactory('TestERC20');
     let tokenIn = (await TokenFactory.connect(admin).deploy('USDC', 'USDC')) as IERC20;
     let tokenOut = (await TokenFactory.connect(admin).deploy('ARENA', 'ARENA')) as IERC20;
-    let TokenLockFactory = await ethers.getContractFactory('TokenLock');
-    let tokenLock = (await TokenLockFactory.connect(admin).deploy(tokenOut.address)) as TokenLock;
+    let TokenLockFactory = await ethers.getContractFactory('RevokableTokenLock');
+    let tokenLock = (await TokenLockFactory.connect(admin).deploy(tokenOut.address, admin.address)) as RevokableTokenLock;
 
     let TokenSaleFactory = await ethers.getContractFactory('TokenSale');
     let tokenSale = (await TokenSaleFactory.connect(admin).deploy(
