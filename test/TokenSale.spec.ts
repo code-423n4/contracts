@@ -35,7 +35,10 @@ describe('TokenSale', async () => {
     let tokenIn = (await TokenFactory.connect(admin).deploy('USDC', 'USDC')) as IERC20;
     let tokenOut = (await TokenFactory.connect(admin).deploy('ARENA', 'ARENA')) as IERC20;
     let TokenLockFactory = await ethers.getContractFactory('RevokableTokenLock');
-    let tokenLock = (await TokenLockFactory.connect(admin).deploy(tokenOut.address, admin.address)) as RevokableTokenLock;
+    let tokenLock = (await TokenLockFactory.connect(admin).deploy(
+      tokenOut.address,
+      admin.address
+    )) as RevokableTokenLock;
 
     let TokenSaleFactory = await ethers.getContractFactory('TokenSale');
     let tokenSale = (await TokenSaleFactory.connect(admin).deploy(
