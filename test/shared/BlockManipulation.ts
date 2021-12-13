@@ -1,6 +1,5 @@
 import hre from 'hardhat';
 
-
 export async function getCurrentBlock() {
   return await hre.network.provider.request({
     method: 'eth_blockNumber',

@@ -107,7 +107,7 @@ describe('RevokableTokenLock', async () => {
     it('should return claimable balance of 0 after some time has passed since revoke was called.', async () => {
       await setNextBlockTimeStamp(unlockCliff.toNumber());
       await revokableTokenLock.revoke(recipient.address);
-      
+
       // Set next block timestamp to 2 hour after revoke was called and mine a block.
       await setNextBlockTimeStamp(unlockCliff.add(HOUR.mul(TWO)).toNumber());
       await mineBlocks(ONE.toNumber());
