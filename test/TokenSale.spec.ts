@@ -3,6 +3,7 @@ import chai from 'chai';
 import hre, {ethers, waffle} from 'hardhat';
 import {IERC20, RevokableTokenLock, TokenSale} from '../typechain';
 import {ZERO_ADDRESS, BN, MAX_UINT} from './shared/Constants';
+import {setNextBlockTimeStamp} from './shared/TimeManipulation';
 import {BigNumber} from 'ethers';
 
 const {solidity, loadFixture} = waffle;
@@ -74,7 +75,7 @@ describe('TokenSale', async () => {
   describe('#changeWhiteList', async () => {
     beforeEach('reset time', async () => {
       // don't start sale yet
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START - ONE_DAY]);
+      await setNextBlockTimeStamp(SALE_START - ONE_DAY);
     });
 
     it('should revert if caller is not owner or seller', async () => {
@@ -103,7 +104,7 @@ describe('TokenSale', async () => {
     });
 
     it('should revert if sale already started', async () => {
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START]);
+      await setNextBlockTimeStamp(SALE_START);
       await expect(
         tokenSale.connect(admin).changeWhiteList(WHITELISTED_ACCOUNTS, WHITELISTED_AMOUNTS)
       ).to.be.revertedWith('TokenSale: sale already started');
@@ -112,12 +113,12 @@ describe('TokenSale', async () => {
 
   describe('#sweepTokenOut', async () => {
     it('should revert if called before token end', async () => {
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION - 1]);
+      await setNextBlockTimeStamp(SALE_START + SALE_DURATION - 1);
       await expect(tokenSale.connect(user).sweepTokenOut()).to.be.revertedWith('TokenSale: sale did not end yet');
     });
 
     it('should send back any remaining tokenOut', async () => {
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION + 1]);
+      await setNextBlockTimeStamp(SALE_START + SALE_DURATION + 1);
 
       let preTokenOut = await tokenOut.balanceOf(admin.address);
       await tokenSale.connect(other).sweepTokenOut();
@@ -159,16 +160,16 @@ describe('TokenSale', async () => {
   describe('#buy', async () => {
     beforeEach('reset time', async () => {
       // start sale
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START]);
+      await setNextBlockTimeStamp(SALE_START);
     });
 
     it('should revert if trying to buy before sale', async () => {
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START - 1]);
+      await setNextBlockTimeStamp(SALE_START - 1);
       await expect(tokenSale.connect(buyer1).buy(`1`)).to.be.revertedWith('TokenSale: not started');
     });
 
     it('should revert if trying to buy after sale duration', async () => {
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + SALE_DURATION + 1]);
+      await setNextBlockTimeStamp(SALE_START + SALE_DURATION + 1);
       await expect(tokenSale.connect(buyer1).buy(`1`)).to.be.revertedWith('TokenSale: already ended');
     });
 
@@ -218,11 +219,11 @@ describe('TokenSale', async () => {
       let preBuyerTokenInBalance = await tokenIn.balanceOf(buyer1.address);
       let preSellerTokenInBalance = await tokenIn.balanceOf(saleRecipient.address);
       await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + ONE_DAY]);
+      await setNextBlockTimeStamp(SALE_START + ONE_DAY);
       await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + 2 * ONE_DAY]);
+      await setNextBlockTimeStamp(SALE_START + 2 * ONE_DAY);
       await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
-      await hre.network.provider.send('evm_setNextBlockTimestamp', [SALE_START + 3 * ONE_DAY]);
+      await setNextBlockTimeStamp(SALE_START + 3 * ONE_DAY);
       await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
       let postBuyerTokenInBalance = await tokenIn.balanceOf(buyer1.address);
       let tokenInPaid = preBuyerTokenInBalance.sub(postBuyerTokenInBalance);
