@@ -2,8 +2,9 @@ import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers, waffle} from 'hardhat';
 import {IERC20, RevokableTokenLock} from '../typechain';
-import {ZERO_ADDRESS, HOUR} from './shared/Constants';
+import {ONE, TWO, ZERO_ADDRESS, HOUR} from './shared/Constants';
 import {setNextBlockTimeStamp} from './shared/TimeManipulation';
+import {mineBlocks} from './shared/BlockManipulation';
 
 const {loadFixture} = waffle;
 
@@ -80,32 +81,41 @@ describe('RevokableTokenLock', async () => {
     it('should not revert if caller is owner', async () => {
       await expect(revokableTokenLock.revoke(recipient.address)).to.not.be.reverted;
     });
-    it('should claim any tokens vested and revoke the rest when revoke is called', async () => {
-      // TODO: how to move this into a fixture?
-      await token.approve(revokableTokenLock.address, amount);
-      await revokableTokenLock.lock(recipient.address, amount);
+    it('should claim none and revoke all tokens to owner if revoke is called before unlockCliff', async () => {
+      await expect(() => revokableTokenLock.revoke(recipient.address)).to.changeTokenBalances(
+        token,
+        [recipient, owner],
+        [0, amount]
+      );
+    });
+    it('should claim any tokens vested and revoke the remaining to owner when revoke is called after unlockCliff but before unlockEnd', async () => {
       await setNextBlockTimeStamp(unlockCliff.toNumber());
-
-      // Call revoke and check token balances
       await expect(() => revokableTokenLock.revoke(recipient.address)).to.changeTokenBalances(
         token,
         [recipient, owner],
         [transferred, remaining]
       );
-
-      // Check contract values
-      ({unlockEnd, claimedAmounts, lockedAmounts} = await revokableTokenLock.vesting(recipient.address));
-      expect(claimedAmounts).to.equal(transferred);
-      expect(lockedAmounts).to.equal(claimedAmounts);
-      expect(unlockEnd).to.equal(unlockCliff);
+    });
+    it('should claim all tokens and revoke none to owner when revoke is called after unlockEnd', async () => {
+      await setNextBlockTimeStamp(unlockEnd.toNumber());
+      await expect(() => revokableTokenLock.revoke(recipient.address)).to.changeTokenBalances(
+        token,
+        [recipient, owner],
+        [amount, 0]
+      );
+    });
+    it('should return claimable balance of 0 after some time has passed since revoke was called.', async () => {
+      await setNextBlockTimeStamp(unlockCliff.toNumber());
+      await revokableTokenLock.revoke(recipient.address);
+      
+      // Set next block timestamp to 2 hour after revoke was called and mine a block.
+      await setNextBlockTimeStamp(unlockCliff.add(HOUR.mul(TWO)).toNumber());
+      await mineBlocks(ONE.toNumber());
+      const bal = await revokableTokenLock.claimableBalance(recipient.address);
+      expect(bal).to.equal(0);
     });
     it('should emit the Revoked event when revoke is called', async () => {
-      // TODO: how to move this into a fixture?
-      await token.approve(revokableTokenLock.address, amount);
-      await revokableTokenLock.lock(recipient.address, amount);
       await setNextBlockTimeStamp(unlockCliff.toNumber());
-
-      // Call revoke
       expect(await revokableTokenLock.revoke(recipient.address))
         .to.emit(revokableTokenLock, 'Revoked')
         .withArgs(recipient.address, remaining);
