@@ -12,6 +12,7 @@ let revokableTokenLock: RevokableTokenLock;
 
 describe('RevokableTokenLock', async () => {
   const [owner, revoker, recipient, other] = waffle.provider.getWallets();
+  const amount = ethers.utils.parseEther('20');
 
   // TODO: maybe create shared fixtures that can be imported by the test files
   async function fixture() {
@@ -28,6 +29,8 @@ describe('RevokableTokenLock', async () => {
     const cliff = begin.add(HOUR.mul(5));
     const end = begin.add(HOUR.mul(20));
     await revokableTokenLock.setupVesting(recipient.address, begin, cliff, end);
+    await token.approve(revokableTokenLock.address, amount);
+    await revokableTokenLock.lock(recipient.address, amount);
 
     return {token, revokableTokenLock};
   }
@@ -54,7 +57,6 @@ describe('RevokableTokenLock', async () => {
     });
   });
   describe('#revoke', async () => {
-    const amount = ethers.utils.parseEther('20');
     let transferred: BigNumber;
     let remaining: BigNumber;
     let unlockBegin: BigNumber;
