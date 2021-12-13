@@ -102,7 +102,7 @@ contract TokenSale is Ownable {
         uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
         uint256 remainingAmount;
         unchecked {
-            // this subtraction does not underflow as claimableAmount is a percentage on _tokenAmount
+            // this subtraction does not underflow as claimableAmount is a percentage on _tokenOutAmount
             remainingAmount = _tokenOutAmount - claimableAmount;
         }
 
@@ -139,6 +139,7 @@ contract TokenSale is Ownable {
             _buyers.length == _newTokenOutAmounts.length,
             "TokenSale: parameter length mismatch"
         );
+        require(block.timestamp < saleStart, "TokenSale: sale already started");
 
         for (uint256 i = 0; i < _buyers.length; i++) {
             whitelistedBuyersAmount[_buyers[i]] = _newTokenOutAmounts[i];

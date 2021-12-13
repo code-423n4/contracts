@@ -8,6 +8,7 @@ interface MerkleDistributorInfo {
   tokenTotal: string;
   claims: {
     [account: string]: {
+      index: number;
       amount: string;
       proof: string[];
     };
@@ -48,10 +49,11 @@ export function parseBalanceMap(balances: OldFormat): MerkleDistributorInfo {
 
   // generate claims
   const claims = sortedAddresses.reduce<{
-    [address: string]: {amount: string; proof: string[]};
+    [address: string]: {index: number; amount: string; proof: string[]};
   }>((memo, address) => {
     const {amount} = dataByAddress[address];
     memo[address] = {
+      index: tree.getLeafIndex(address, amount),
       amount: amount.toString(),
       proof: tree.getProof(address, amount),
     };
