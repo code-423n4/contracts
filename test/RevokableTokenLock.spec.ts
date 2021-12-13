@@ -3,7 +3,7 @@ import {BigNumber} from 'ethers';
 import {ethers, waffle} from 'hardhat';
 import {IERC20, RevokableTokenLock} from '../typechain';
 import {ZERO_ADDRESS, HOUR} from './shared/Constants';
-import {setNextBlockTimestamp} from './shared/Functions';
+import {setNextBlockTimeStamp} from './shared/TimeManipulation';
 
 const {loadFixture} = waffle;
 
@@ -82,7 +82,7 @@ describe('RevokableTokenLock', async () => {
       // TODO: how to move this into a fixture?
       await token.approve(revokableTokenLock.address, amount);
       await revokableTokenLock.lock(recipient.address, amount);
-      await setNextBlockTimestamp(unlockCliff.toNumber());
+      await setNextBlockTimeStamp(unlockCliff.toNumber());
 
       // Call revoke and check token balances
       await expect(() => revokableTokenLock.revoke(recipient.address)).to.changeTokenBalances(
@@ -101,7 +101,7 @@ describe('RevokableTokenLock', async () => {
       // TODO: how to move this into a fixture?
       await token.approve(revokableTokenLock.address, amount);
       await revokableTokenLock.lock(recipient.address, amount);
-      await setNextBlockTimestamp(unlockCliff.toNumber());
+      await setNextBlockTimeStamp(unlockCliff.toNumber());
 
       // Call revoke
       expect(await revokableTokenLock.revoke(recipient.address))
