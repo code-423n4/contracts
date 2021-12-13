@@ -7,4 +7,4 @@ export const ZERO = ethers.constants.Zero;
 export const ONE = ethers.constants.One;
 export const TWO = ethers.constants.Two;
 export const MAX_UINT = ethers.constants.MaxUint256;
-export const HOUR = ethers.BigNumber.from(60).mul(60).mul(1000);
+export const HOUR = ethers.BigNumber.from(60).mul(60);

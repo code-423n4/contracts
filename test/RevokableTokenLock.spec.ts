@@ -23,8 +23,8 @@ describe('RevokableTokenLock', async () => {
       revoker.address
     )) as RevokableTokenLock;
 
-    const dt = new Date();
-    const begin = ethers.BigNumber.from(dt.getTime()).add(HOUR);
+    const dt = Math.floor(new Date().getTime() / 1000);
+    const begin = ethers.BigNumber.from(dt).add(HOUR);
     const cliff = begin.add(HOUR.mul(5));
     const end = begin.add(HOUR.mul(20));
     await revokableTokenLock.setupVesting(recipient.address, begin, cliff, end);
