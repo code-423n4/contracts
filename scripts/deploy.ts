@@ -99,6 +99,17 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   // transfer token admin role to timelock
   await token.transferOwnership(timelock.address);
 
+  console.log('exporting addresses...');
+  let addressesToExport = {
+    deployer: deployerAddress,
+    token: token.address,
+    tokenLock: revokableTokenLock.address,
+    timelock: timelock.address,
+    governor: governor.address,
+  };
+  let exportJson = JSON.stringify(addressesToExport, null, 2);
+  fs.writeFileSync(config.EXPORT_FILENAME, exportJson);
+
   /////////////////////////////////
   // ACCESS CONTROL VERIFICATION //
   /////////////////////////////////
@@ -152,16 +163,5 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   expect(await token.vestDuration()).to.be.eq(config.VEST_DURATION);
 
   console.log('verification complete!');
-  console.log('exporting addresses...');
-  let addressesToExport = {
-    deployer: deployerAddress,
-    token: token.address,
-    tokenLock: revokableTokenLock.address,
-    timelock: timelock.address,
-    governor: governor.address,
-  };
-  let exportJson = JSON.stringify(addressesToExport, null, 2);
-  fs.writeFileSync(config.EXPORT_FILENAME, exportJson);
-
   process.exit(0);
 });

@@ -20,7 +20,6 @@ task('verifyContracts', 'verify deployed contracts')
 .addParam('i', 'JSON file containing exported addresses')
 .setAction(async (taskArgs, hre) => {
   const networkId = (hre.network.config.chainId) as number;
-  console.log('verifying addresses...');
   const addresses = JSON.parse(fs.readFileSync(taskArgs.i, 'utf8'));
 
   token = await hre.ethers.getContractAt('ArenaToken', addresses['token']);
@@ -30,6 +29,7 @@ task('verifyContracts', 'verify deployed contracts')
   
   let config = allConfigs[networkId];
 
+  console.log('verifying addresses on etherscan...');
   await verifyContract(hre, token.address, [
     config.FREE_SUPPLY,
     config.AIRDROP_SUPPLY,

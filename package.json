@@ -10,8 +10,8 @@
     "compile": "yarn hardhat compile",
     "generate-merkle-root": "ts-node ./scripts/airdrop/generate-merkle-root.ts",
     "generate-merkle-root:example": "ts-node ./scripts/airdrop/generate-merkle-root.ts -i ./scripts/airdrop/example.json -o resultExample.json",
-    "lint:check": "prettier --check '(contracts|interfaces|src|test)/**/*.(sol|json|ts)'",
-    "lint:write": "prettier -w '(contracts|interfaces|src|test)/**/*.(sol|json|ts)'"
+    "lint:check": "prettier --check '(contracts|interfaces|src|test|deployments)/**/*.(sol|json|ts)'",
+    "lint:write": "prettier -w '(contracts|interfaces|src|test|deployments)/**/*.(sol|json|ts)'"
   },
   "repository": {
     "type": "git",
