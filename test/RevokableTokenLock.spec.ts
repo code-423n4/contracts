@@ -2,7 +2,7 @@ import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers, waffle} from 'hardhat';
 import {IERC20, RevokableTokenLock} from '../typechain';
-import {ONE, TWO, ZERO_ADDRESS, HOUR} from './shared/Constants';
+import {ZERO_ADDRESS, ONE_HOUR} from './shared/Constants';
 import {setNextBlockTimeStamp, mineBlockAt} from './shared/TimeManipulation';
 
 const {loadFixture} = waffle;
@@ -25,9 +25,9 @@ describe('RevokableTokenLock', async () => {
     )) as RevokableTokenLock;
 
     const dt = Math.floor(new Date().getTime() / 1000);
-    const begin = dt + HOUR;
-    const cliff = dt + 5 * HOUR;
-    const end = dt + 20 * HOUR;
+    const begin = dt + ONE_HOUR;
+    const cliff = dt + 5 * ONE_HOUR;
+    const end = dt + 20 * ONE_HOUR;
     await revokableTokenLock.setupVesting(recipient.address, begin, cliff, end);
     await token.approve(revokableTokenLock.address, amount);
     await revokableTokenLock.lock(recipient.address, amount);
@@ -106,7 +106,7 @@ describe('RevokableTokenLock', async () => {
       await revokableTokenLock.revoke(recipient.address);
 
       // Set next block timestamp to 2 hour after revoke was called and mine a block.
-      await mineBlockAt(unlock + 2 * HOUR);
+      await mineBlockAt(unlock + 2 * ONE_HOUR);
       const bal = await revokableTokenLock.claimableBalance(recipient.address);
       expect(bal).to.equal(0);
     });
