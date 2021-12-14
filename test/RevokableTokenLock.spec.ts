@@ -120,6 +120,5 @@ describe('RevokableTokenLock', async () => {
         .to.emit(revokableTokenLock, 'Revoked')
         .withArgs(recipient.address, remaining);
     });
-    // TODO: mock revert on transfers to test transfer fails
   });
 });
