@@ -6,6 +6,7 @@
   "scripts": {
     "test": "yarn hardhat test",
     "test-no-compile": "TS_NODE_TRANSPILE_ONLY=1 yarn hardhat test --no-compile",
+    "first-compile": "TS_NODE_TRANSPILE_ONLY=1 yarn hardhat typechain",
     "compile": "yarn hardhat compile",
     "generate-merkle-root": "ts-node ./scripts/airdrop/generate-merkle-root.ts",
     "generate-merkle-root:example": "ts-node ./scripts/airdrop/generate-merkle-root.ts -i ./scripts/airdrop/example.json -o resultExample.json",

@@ -27,6 +27,6 @@ jobs:
 
       # The described bash commands will be executed
       - name: Compile
-        run: yarn && yarn compile
+        run: yarn && yarn first-compile
       - name: Test
         run: yarn test-no-compile

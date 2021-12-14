@@ -13,7 +13,7 @@ import {
   ArenaGovernor,
 } from '../typechain';
 
-import {config} from './config';
+import {allConfigs} from './config';
 
 let deployerAddress: string;
 let token: ArenaToken;
@@ -27,9 +27,12 @@ const PROPOSER_ROLE = '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca73608
 const EXECUTOR_ROLE = '0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63';
 
 task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
+  const networkId = (hre.network.config.chainId) as number;
   const [deployer] = await hre.ethers.getSigners();
   deployerAddress = await deployer.getAddress();
   console.log(`Deployer: ${deployerAddress}`);
+
+  let config = allConfigs[networkId];
 
   console.log(`deploying token...`);
   const TokenFactory = (await hre.ethers.getContractFactory('ArenaToken')) as ArenaToken__factory;
@@ -56,6 +59,7 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
 
   await token.setMerkleRoot(config.MERKLE_ROOT);
 
+  console.log(`deploying timelock...`);
   const TimelockControllerFactory = (await hre.ethers.getContractFactory(
     'TimelockController'
   )) as TimelockController__factory;
@@ -67,6 +71,7 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   await timelock.deployed();
   console.log(`timelock address: ${timelock.address}`);
 
+  console.log(`deploying governor...`);
   const ArenaGovernorFactory = (await hre.ethers.getContractFactory('ArenaGovernor')) as ArenaGovernor__factory;
   governor = await ArenaGovernorFactory.deploy(token.address, timelock.address);
   await governor.deployed();
@@ -78,10 +83,7 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
 
   // set executor role to null address so that ANY address can execute a queued proposal
   // https://docs.openzeppelin.com/contracts/4.x/api/governance#timelock-executor
-  await timelock.grantRole(
-    EXECUTOR_ROLE,
-    hre.ethers.constants.AddressZero
-  );
+  await timelock.grantRole(EXECUTOR_ROLE, hre.ethers.constants.AddressZero);
 
   // https://docs.openzeppelin.com/contracts/4.x/api/governance#timelock-admin
   // Timelock is self-governed, admin role has already been bestowed to itself
@@ -116,16 +118,15 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   // null address is given executor role so that any address is allowed to execute proposal
   // see onlyRoleOrOpenRole modifier of TimelockController
   expect(await timelock.hasRole(EXECUTOR_ROLE, hre.ethers.constants.AddressZero)).to.be.true;
-  
+
   // TokenLock revoker to be timelock
   expect(await revokableTokenLock.revoker()).to.be.eq(timelock.address);
 
   // Token's owner should be timelock
   expect(await token.owner()).to.be.eq(timelock.address);
-  
+
   // check Token's tokenlock has been set
   expect(await token.tokenLock()).to.be.eq(revokableTokenLock.address);
-
 
   /////////////////////////
   // CONFIG VERIFICATION //
@@ -153,11 +154,12 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   console.log('verification complete!');
   console.log('exporting addresses...');
   let addressesToExport = {
+    deployer: deployerAddress,
     token: token.address,
     tokenLock: revokableTokenLock.address,
     timelock: timelock.address,
-    governor: governor.address
-  }
+    governor: governor.address,
+  };
   let exportJson = JSON.stringify(addressesToExport, null, 2);
   fs.writeFileSync(config.EXPORT_FILENAME, exportJson);
 
