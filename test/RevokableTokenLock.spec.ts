@@ -3,8 +3,7 @@ import {BigNumber} from 'ethers';
 import {ethers, waffle} from 'hardhat';
 import {IERC20, RevokableTokenLock} from '../typechain';
 import {ONE, TWO, ZERO_ADDRESS, HOUR} from './shared/Constants';
-import {setNextBlockTimeStamp} from './shared/TimeManipulation';
-import {mineBlocks} from './shared/BlockManipulation';
+import {setNextBlockTimeStamp, mineBlockAt} from './shared/TimeManipulation';
 
 const {loadFixture} = waffle;
 
@@ -26,9 +25,9 @@ describe('RevokableTokenLock', async () => {
     )) as RevokableTokenLock;
 
     const dt = Math.floor(new Date().getTime() / 1000);
-    const begin = ethers.BigNumber.from(dt).add(HOUR);
-    const cliff = begin.add(HOUR.mul(5));
-    const end = begin.add(HOUR.mul(20));
+    const begin = dt + HOUR;
+    const cliff = dt + 5 * HOUR;
+    const end = dt + 20 * HOUR;
     await revokableTokenLock.setupVesting(recipient.address, begin, cliff, end);
     await token.approve(revokableTokenLock.address, amount);
     await revokableTokenLock.lock(recipient.address, amount);
@@ -62,8 +61,6 @@ describe('RevokableTokenLock', async () => {
     let unlockBegin: BigNumber;
     let unlockCliff: BigNumber;
     let unlockEnd: BigNumber;
-    let claimedAmounts: BigNumber;
-    let lockedAmounts: BigNumber;
     before('Set up data', async () => {
       ({unlockBegin, unlockCliff, unlockEnd} = await revokableTokenLock.vesting(recipient.address));
       transferred = amount.mul(unlockCliff.sub(unlockBegin)).div(unlockEnd.sub(unlockBegin));
@@ -104,12 +101,12 @@ describe('RevokableTokenLock', async () => {
       );
     });
     it('should return claimable balance of 0 after some time has passed since revoke was called.', async () => {
-      await setNextBlockTimeStamp(unlockCliff.toNumber());
+      const unlock = unlockCliff.toNumber();
+      await setNextBlockTimeStamp(unlock);
       await revokableTokenLock.revoke(recipient.address);
 
       // Set next block timestamp to 2 hour after revoke was called and mine a block.
-      await setNextBlockTimeStamp(unlockCliff.add(HOUR.mul(TWO)).toNumber());
-      await mineBlocks(ONE.toNumber());
+      await mineBlockAt(unlock + 2 * HOUR);
       const bal = await revokableTokenLock.claimableBalance(recipient.address);
       expect(bal).to.equal(0);
     });
