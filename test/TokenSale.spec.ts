@@ -1,10 +1,9 @@
 import {expect} from 'chai';
 import chai from 'chai';
-import hre, {ethers, waffle} from 'hardhat';
+import {ethers, waffle} from 'hardhat';
 import {IERC20, RevokableTokenLock, TokenSale} from '../typechain';
-import {ZERO_ADDRESS, BN, MAX_UINT} from './shared/Constants';
-import {setNextBlockTimeStamp} from './shared/TimeManipulation';
-import {BigNumber} from 'ethers';
+import {ONE_DAY, ONE_18, BN, MAX_UINT} from './shared/Constants';
+import {setNextBlockTimeStamp, resetNetwork} from './shared/TimeManipulation';
 
 const {solidity, loadFixture} = waffle;
 chai.use(solidity);
@@ -14,9 +13,7 @@ let tokenOut: IERC20;
 let tokenLock: RevokableTokenLock;
 let tokenSale: TokenSale;
 const SALE_START = Math.floor(new Date(`2021-12-24T12:00:00.000Z`).getTime() / 1000);
-const ONE_DAY = 24 * 60 * 60;
 const ARENA_DECIMALS = 18;
-const ONE_18 = BigNumber.from(`10`).pow(`18`);
 const ONE_ARENA = ethers.utils.parseUnits(`1`, ARENA_DECIMALS);
 // Polygon USDC only has 6 decimals
 const TOKEN_IN_DECIMALS = 6;
@@ -249,5 +246,9 @@ describe('TokenSale', async () => {
         'TokenSale: cannot buy more than allowed'
       );
     });
+  });
+
+  after('reset network', async () => {
+    await resetNetwork();
   });
 });
