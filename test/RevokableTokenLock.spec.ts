@@ -38,7 +38,6 @@ describe('RevokableTokenLock', async () => {
   beforeEach('deploy fixture', async () => {
     ({token, revokableTokenLock} = await loadFixture(fixture));
   });
-  // TODO: maybe do getStorageAt() tests as well
   describe('#setRevoker', async () => {
     it('should revert if caller is not owner', async () => {
       await expect(revokableTokenLock.connect(recipient).setRevoker(other.address)).to.be.revertedWith(
