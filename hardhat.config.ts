@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
     },
     polygon: {
       chainId: 137,
-      url: process.env.RINKEBY_URL || '',
+      url: process.env.POLYGON_URL || '',
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     }
   },

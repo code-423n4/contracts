@@ -8,7 +8,7 @@ export const allConfigs: any = {
     CLAIMABLE_PROPORTION: 2000, // 20%
     CLAIM_END_DATE: '2022-12-25',
     VEST_DURATION: 4 * ONE_DAY,
-    MERKLE_ROOT: '0x07087dd5ec10dc92a26074d31dea66fb039c30cb8bcc5d7536c7f55f116cd77e',
+    MERKLE_ROOT: '0xd97c9a423833d78e0562b8ed2d14752b54e7ef9b52314cafb197e3a339299901',
     TIMELOCK_DELAY: 1800, // 30 mins
     EXPORT_FILENAME: 'rinkebyAddresses.json',
   },
