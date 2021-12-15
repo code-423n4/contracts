@@ -1,5 +1,6 @@
 import {constants} from 'ethers';
 
+export const ZERO_ADDRESS = constants.AddressZero;
 export const ONE_18 = constants.WeiPerEther;
 export const ZERO = constants.Zero;
 export const ONE = constants.One;
