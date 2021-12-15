@@ -93,6 +93,9 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   // set revoker role in TokenLock to timelock
   await revokableTokenLock.setRevoker(timelock.address);
 
+  // transfer tokenlock admin role to timelock
+  await revokableTokenLock.transferOwnership(timelock.address);
+
   // transfer all tokens held by deployer to timelock
   await token.transfer(timelock.address, config.FREE_SUPPLY);
 
@@ -130,8 +133,11 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   // see onlyRoleOrOpenRole modifier of TimelockController
   expect(await timelock.hasRole(EXECUTOR_ROLE, hre.ethers.constants.AddressZero)).to.be.true;
 
-  // TokenLock revoker to be timelock
+  // TokenLock revoker should be timelock
   expect(await revokableTokenLock.revoker()).to.be.eq(timelock.address);
+
+  // TokenLock owner should be timelock
+  expect(await revokableTokenLock.owner()).to.be.eq(timelock.address);
 
   // Token's owner should be timelock
   expect(await token.owner()).to.be.eq(timelock.address);
