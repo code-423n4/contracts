@@ -39,7 +39,7 @@ contract RevokableTokenLock is TokenLock {
         uint256 claimable = claimableBalance(recipient);
         if (claimable > 0) {
             vesting[recipient].claimedAmounts += claimable;
-            require(token.transfer(recipient, claimable), "TokenLock: Transfer failed");
+            require(token.transfer(recipient, claimable), "RevokableTokenLock: Transfer failed");
             emit Claimed(recipient, recipient, claimable);
         }
 
