@@ -31,7 +31,6 @@ describe('TokenSale', async () => {
   const [user, admin, other] = waffle.provider.getWallets();
 
   async function fixture() {
-    await setNextBlockTimeStamp(NOW);
     let ArenaTokenFactory = await ethers.getContractFactory('ArenaToken');
     let token = (await ArenaTokenFactory.connect(admin).deploy(
       FREE_SUPPLY,
@@ -52,7 +51,71 @@ describe('TokenSale', async () => {
     ({token, tokenLock} = await loadFixture(fixture));
   });
 
-  describe('#claimTokens, no root set', async () => {
+  describe('#setTokenLock', async () => {
+    it('should revert if caller is not owner', async () => {
+      await expect(token.connect(user).setTokenLock(tokenLock.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+    });
+
+    it('should allow owner to set', async () => {
+      await token.connect(admin).setTokenLock(tokenLock.address);
+      expect(await token.tokenLock()).to.eq(tokenLock.address);
+    });
+  });
+
+  describe('#setMerkleRoot', async () => {
+    it('should revert if caller is not owner', async () => {
+      await expect(token.connect(user).setTokenLock(tokenLock.address)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+    });
+
+    it('should allow owner to set exactly once', async () => {
+      await token.connect(admin).setMerkleRoot(airdropJson.merkleRoot);
+      expect(await token.merkleRoot()).to.eq(airdropJson.merkleRoot);
+      await expect(
+        token.connect(admin).setMerkleRoot(`0xdeadbeef42c0ffeedeadbeef42c0ffeedeadbeef42c0ffeedeadbeef42c0ffee`)
+      ).to.be.revertedWith('ArenaToken: Merkle root already set');
+    });
+  });
+
+  describe('#mint', async () => {
+    it('should revert if caller is not owner', async () => {
+      await expect(token.connect(user).mint(user.address, ONE_18)).to.be.revertedWith(
+        'Ownable: caller is not the owner'
+      );
+    });
+
+    it('should allow owner to mint new tokens', async () => {
+      await token.connect(admin).mint(user.address, ONE_18);
+      expect(await token.balanceOf(user.address)).to.eq(ONE_18);
+    });
+  });
+
+  describe('#sweep', async () => {
+    it('should revert if trying to sweep before claim period ended', async () => {
+      await expect(token.connect(admin).sweep(other.address)).to.be.revertedWith(
+        'ArenaToken: Claim period not yet ended'
+      );
+    });
+
+    it('should revert if caller is not owner', async () => {
+      await setNextBlockTimeStamp(CLAIM_END_TIME - 1);
+      await expect(token.connect(user).sweep(other.address)).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('should allow owner to sweep after claim period ended', async () => {
+      await setNextBlockTimeStamp(CLAIM_END_TIME);
+      await expect(() => token.connect(admin).sweep(other.address)).to.changeTokenBalances(
+        token,
+        [token, other],
+        [AIRDROP_SUPPLY.mul(-1), AIRDROP_SUPPLY]
+      );
+    });
+  });
+
+  describe('#claimTokens', async () => {
     describe('when no merkle root is set', async () => {
       it('should revert when trying to claim', async () => {
         const claim = claims[claimers[0]];
