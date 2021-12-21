@@ -1,6 +1,18 @@
-import {BigNumber as BN, constants} from 'ethers';
+import {BigNumber, BigNumber as BN, constants} from 'ethers';
 import {ONE_DAY, ONE_YEAR} from '../test/shared/Constants';
-export const allConfigs: any = {
+
+type Config = {
+  FREE_SUPPLY: BigNumber;
+  AIRDROP_SUPPLY: BigNumber;
+  CLAIMABLE_PROPORTION: number;
+  CLAIM_END_DATE: string;
+  VEST_DURATION: number;
+  MERKLE_ROOT: string;
+  TIMELOCK_DELAY: number;
+  EXPORT_FILENAME: string;
+};
+
+export const allConfigs: {[key: number]: Config} = {
   // rinkeby
   4: {
     FREE_SUPPLY: BN.from(900).mul(1_000_000).mul(constants.WeiPerEther), // 900M

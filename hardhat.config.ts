@@ -9,6 +9,7 @@ import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import './scripts/deploy';
 import './scripts/verify';
+import './scripts/proposals/transfer';
 
 dotenv.config();
 

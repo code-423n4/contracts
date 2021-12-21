@@ -10,8 +10,8 @@
     "compile": "yarn hardhat compile",
     "generate-merkle-root": "ts-node ./scripts/airdrop/generate-merkle-root.ts",
     "generate-merkle-root:example": "ts-node ./scripts/airdrop/generate-merkle-root.ts -i ./scripts/airdrop/example.json -o resultExample.json",
-    "lint:check": "prettier --check '(contracts|interfaces|src|test|deployments)/**/*.(sol|json|ts)'",
-    "lint:write": "prettier -w '(contracts|interfaces|src|test|deployments)/**/*.(sol|json|ts)'"
+    "lint:check": "prettier --check '(contracts|interfaces|src|scripts|test|deployments)/**/*.(sol|json|ts)'",
+    "lint:write": "prettier -w '(contracts|interfaces|src|scripts|test|deployments)/**/*.(sol|json|ts)'"
   },
   "repository": {
     "type": "git",
@@ -24,7 +24,8 @@
   },
   "homepage": "https://github.com/code-423n4/genesis#readme",
   "dependencies": {
-    "hardhat": "2.7.0"
+    "hardhat": "2.7.0",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.3",
@@ -34,6 +35,7 @@
     "@typechain/ethers-v5": "^7.0.1",
     "@typechain/hardhat": "^2.3.0",
     "@types/chai": "^4.2.21",
+    "@types/lodash": "^4.14.178",
     "@types/mocha": "^9.0.0",
     "@types/node": "^16.4.13",
     "@typescript-eslint/eslint-plugin": "^4.29.1",
