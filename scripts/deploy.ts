@@ -27,7 +27,7 @@ const PROPOSER_ROLE = '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca73608
 const EXECUTOR_ROLE = '0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63';
 
 task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
-  const networkId = (hre.network.config.chainId) as number;
+  const networkId = hre.network.config.chainId as number;
   const [deployer] = await hre.ethers.getSigners();
   deployerAddress = await deployer.getAddress();
   console.log(`Deployer: ${deployerAddress}`);
