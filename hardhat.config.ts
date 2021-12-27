@@ -9,7 +9,7 @@ import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import './scripts/deploy';
 import './scripts/verify';
-import './scripts/proposals/transfer';
+import './scripts/proposals';
 
 dotenv.config();
 
@@ -36,7 +36,7 @@ const config: HardhatUserConfig = {
       chainId: 137,
       url: process.env.POLYGON_URL || '',
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    }
+    },
   },
   typechain: {
     target: 'ethers-v5',
