@@ -96,6 +96,10 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
         // transfer claimable proportion to caller
         _transfer(address(this), msg.sender, claimableAmount);
+        // self-delegate if no prior delegatee was chosen
+        if (delegates(msg.sender) == address(0)) {
+            _delegate(msg.sender, msg.sender);
+        }
 
         require(address(tokenLock) != address(0), "Vesting contract not initialized");
         tokenLock.setupVesting(
