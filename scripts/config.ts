@@ -51,7 +51,7 @@ export const allConfigs: {[key: number]: Config} = {
     VEST_DURATION: 4 * ONE_DAY,
     MERKLE_ROOT: '0xd97c9a423833d78e0562b8ed2d14752b54e7ef9b52314cafb197e3a339299901',
     TIMELOCK_DELAY: 1800, // 30 mins
-    TOKEN_SALE_START: Math.floor(new Date(`2021-12-27T12:00:00.000Z`).getTime() / 1000),
+    TOKEN_SALE_START: Math.floor(new Date(`2021-12-27T13:16:00.000Z`).getTime() / 1000),
     TOKEN_SALE_DURATION: 14 * ONE_DAY,
     TOKEN_SALE_USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC 6 decimals
     TOKEN_SALE_ARENA_PRICE: BN.from(30_000).mul(ONE_18).div(ONE_18), // 0.03 USDC * 1e18 / 1.0 ARENA
@@ -68,7 +68,7 @@ export const allConfigs: {[key: number]: Config} = {
     VEST_DURATION: 4 * ONE_YEAR,
     MERKLE_ROOT: '0x0', // TODO: edit value
     TIMELOCK_DELAY: 2 * ONE_DAY, // 2 days (same as ENS)
-    TOKEN_SALE_START: Math.floor(new Date(`2021-12-27T12:00:00.000Z`).getTime() / 1000),
+    TOKEN_SALE_START: Math.floor(new Date(`2021-12-27T13:50:00.000Z`).getTime() / 1000),
     TOKEN_SALE_DURATION: 14 * ONE_DAY,
     TOKEN_SALE_USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
     TOKEN_SALE_ARENA_PRICE: BN.from(30_000).mul(ONE_18).div(ONE_18), // 0.03 USDC * 1e18 / 1.0 ARENA

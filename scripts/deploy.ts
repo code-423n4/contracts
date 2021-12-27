@@ -84,8 +84,8 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   console.log(`deploying tokensale...`);
   const TokenSaleFactory = (await hre.ethers.getContractFactory('TokenSale')) as TokenSale__factory;
   tokenSale = await TokenSaleFactory.deploy(
-    token.address,
     config.TOKEN_SALE_USDC,
+    token.address,
     config.TOKEN_SALE_START,
     config.TOKEN_SALE_DURATION,
     config.TOKEN_SALE_ARENA_PRICE,
@@ -111,6 +111,8 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
 
   // set revoker role in TokenLock to timelock
   await revokableTokenLock.setRevoker(timelock.address);
+  // set token sale in TokenLock
+  await revokableTokenLock.setTokenSale(tokenSale.address);
 
   // transfer tokenlock admin role to timelock
   await revokableTokenLock.transferOwnership(timelock.address);
@@ -166,6 +168,9 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
 
   // TokenLock revoker should be timelock
   expect(await revokableTokenLock.revoker()).to.be.eq(timelock.address);
+
+  // TokenLock token sale should be set
+  expect(await revokableTokenLock.tokenSale()).to.be.eq(tokenSale.address);
 
   // TokenLock owner should be timelock
   expect(await revokableTokenLock.owner()).to.be.eq(timelock.address);

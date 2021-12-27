@@ -38,8 +38,8 @@ task('verifyContracts', 'verify deployed contracts')
     await verifyContract(hre, timelock.address, [config.TIMELOCK_DELAY, [], []]);
     await verifyContract(hre, governor.address, [token.address, timelock.address]);
     await verifyContract(hre, tokenSale.address, [
-      token.address,
       config.TOKEN_SALE_USDC,
+      token.address,
       config.TOKEN_SALE_START,
       config.TOKEN_SALE_DURATION,
       config.TOKEN_SALE_ARENA_PRICE,
