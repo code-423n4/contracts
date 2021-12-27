@@ -81,7 +81,6 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   await governor.deployed();
   console.log(`governor address: ${governor.address}`);
 
-
   console.log(`deploying tokensale...`);
   const TokenSaleFactory = (await hre.ethers.getContractFactory('TokenSale')) as TokenSale__factory;
   tokenSale = await TokenSaleFactory.deploy(
@@ -117,13 +116,16 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   await revokableTokenLock.transferOwnership(timelock.address);
 
   // set up token sale whitelist
-  await tokenSale.changeWhiteList(config.TOKEN_SALE_WHITELIST.map(({buyer}) => buyer), config.TOKEN_SALE_WHITELIST.map(({arenaAmount}) => arenaAmount))
+  await tokenSale.changeWhiteList(
+    config.TOKEN_SALE_WHITELIST.map(({buyer}) => buyer),
+    config.TOKEN_SALE_WHITELIST.map(({arenaAmount}) => arenaAmount)
+  );
   // transfer token sale admin role to timelock
   await tokenSale.transferOwnership(timelock.address);
 
   // transfer all tokens held by deployer to token sale and timelock
-  const TOKEN_SALE_SUPPLY = config.TOKEN_SALE_WHITELIST.reduce((sum, el) => sum.add(el.arenaAmount), BN.from(`0`))
-  console.log(`transferring ${TOKEN_SALE_SUPPLY.toString()} ARENA to TokenSale. Remaining back to Timelock`)
+  const TOKEN_SALE_SUPPLY = config.TOKEN_SALE_WHITELIST.reduce((sum, el) => sum.add(el.arenaAmount), BN.from(`0`));
+  console.log(`transferring ${TOKEN_SALE_SUPPLY.toString()} ARENA to TokenSale. Remaining back to Timelock`);
   await token.transfer(tokenSale.address, TOKEN_SALE_SUPPLY);
   await token.transfer(timelock.address, config.FREE_SUPPLY.sub(TOKEN_SALE_SUPPLY));
 
