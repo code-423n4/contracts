@@ -27,7 +27,8 @@ describe('TokenLock', async () => {
   }
   beforeEach('deploy fixture, update time', async () => {
     ({token, tokenLock} = await loadFixture(fixture));
-    unlockBegin = Math.floor(new Date(`2021-12-24T12:00:00.000Z`).getTime() / 1000);
+    // hardhat implicitly uses now as block time, so need to make tests relative to now
+    unlockBegin = Math.floor(Date.now() / 1000) + ONE_DAY;
     unlockCliff = unlockBegin; // in our case, there isn't a cliff
     unlockEnd = unlockBegin + 4 * ONE_YEAR;
   });
