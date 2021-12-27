@@ -1,9 +1,9 @@
-import {BigNumber, BigNumber as BN, constants} from 'ethers';
+import {BigNumber as BN, constants} from 'ethers';
 import {ONE_DAY, ONE_YEAR} from '../test/shared/Constants';
 
 type Config = {
-  FREE_SUPPLY: BigNumber;
-  AIRDROP_SUPPLY: BigNumber;
+  FREE_SUPPLY: BN;
+  AIRDROP_SUPPLY: BN;
   CLAIMABLE_PROPORTION: number;
   CLAIM_END_DATE: string;
   VEST_DURATION: number;
