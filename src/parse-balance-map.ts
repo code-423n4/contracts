@@ -3,7 +3,7 @@ import BalanceTree from './balance-tree';
 import {BigNumber as BN, utils} from 'ethers';
 const {isAddress, getAddress} = utils;
 
-interface MerkleDistributorInfo {
+export interface MerkleDistributorInfo {
   merkleRoot: string;
   tokenTotal: string;
   claims: {
