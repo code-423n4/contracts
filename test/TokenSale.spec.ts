@@ -3,7 +3,7 @@ import chai from 'chai';
 import {ethers, waffle} from 'hardhat';
 import {BigNumber as BN} from 'ethers';
 import {IERC20, RevokableTokenLock, TokenSale} from '../typechain';
-import {ONE_DAY, ONE_18, MAX_UINT} from './shared/Constants';
+import {ONE_DAY, ONE_18, MAX_UINT, ONE_YEAR} from './shared/Constants';
 import {setNextBlockTimeStamp, resetNetwork} from './shared/TimeManipulation';
 
 const {solidity, loadFixture} = waffle;
@@ -13,7 +13,8 @@ let tokenIn: IERC20;
 let tokenOut: IERC20;
 let tokenLock: RevokableTokenLock;
 let tokenSale: TokenSale;
-const SALE_START = Math.floor(new Date(`2021-12-24T12:00:00.000Z`).getTime() / 1000);
+// hardhat implicitly uses now as block time, so need to make tests relative to now
+const SALE_START = Math.floor(Date.now() / 1000) + ONE_YEAR;
 const ARENA_DECIMALS = 18;
 const ONE_ARENA = ethers.utils.parseUnits(`1`, ARENA_DECIMALS);
 // Polygon USDC only has 6 decimals
