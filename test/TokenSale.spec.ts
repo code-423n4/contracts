@@ -164,32 +164,27 @@ describe('TokenSale', async () => {
 
     it('should revert if trying to buy before sale', async () => {
       await setNextBlockTimeStamp(SALE_START - 1);
-      await expect(tokenSale.connect(buyer1).buy(`1`)).to.be.revertedWith('TokenSale: not started');
+      await expect(tokenSale.connect(buyer1).buy()).to.be.revertedWith('TokenSale: not started');
     });
 
     it('should revert if trying to buy after sale duration', async () => {
       await setNextBlockTimeStamp(SALE_START + SALE_DURATION + 1);
-      await expect(tokenSale.connect(buyer1).buy(`1`)).to.be.revertedWith('TokenSale: already ended');
+      await expect(tokenSale.connect(buyer1).buy()).to.be.revertedWith('TokenSale: already ended');
     });
 
     it('should revert if non-whitelisted tries to buy', async () => {
-      await expect(tokenSale.connect(user).buy(`1`)).to.be.revertedWith('TokenSale: cannot buy more than allowed');
-      await expect(tokenSale.connect(other).buy(`1`)).to.be.revertedWith('TokenSale: cannot buy more than allowed');
-    });
-
-    it('should revert if whitelisted tries to buy more than allotted', async () => {
-      await expect(tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].add(`1`))).to.be.revertedWith(
-        'TokenSale: cannot buy more than allowed'
+      await expect(tokenSale.connect(user).buy()).to.be.revertedWith(
+        'TokenSale: non-whitelisted purchaser or have already bought'
       );
-      await expect(tokenSale.connect(buyer2).buy(WHITELISTED_AMOUNTS[1].add(`1`))).to.be.revertedWith(
-        'TokenSale: cannot buy more than allowed'
+      await expect(tokenSale.connect(other).buy()).to.be.revertedWith(
+        'TokenSale: non-whitelisted purchaser or have already bought'
       );
     });
 
-    it('should let whitelisted buy full amount', async () => {
+    it('should let whitelisted buy only full amount', async () => {
       let preBuyerTokenInBalance = await tokenIn.balanceOf(buyer1.address);
       let preSellerTokenInBalance = await tokenIn.balanceOf(saleRecipient.address);
-      await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0]);
+      await tokenSale.connect(buyer1).buy();
       let postBuyerTokenInBalance = await tokenIn.balanceOf(buyer1.address);
       let tokenInPaid = preBuyerTokenInBalance.sub(postBuyerTokenInBalance);
 
@@ -208,45 +203,15 @@ describe('TokenSale', async () => {
       expect(vesting.unlockEnd).to.eq(SALE_START + ONE_DAY);
       expect(vesting.lockedAmounts).to.eq(WHITELISTED_AMOUNTS[0].mul(4).div(5));
 
-      // whitelisted cannot buy more
-      await expect(tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].add(`1`))).to.be.revertedWith(
-        'TokenSale: cannot buy more than allowed'
+      // whitelisted cannot buy again
+      await expect(tokenSale.connect(buyer1).buy()).to.be.revertedWith(
+        'TokenSale: non-whitelisted purchaser or have already bought'
       );
     });
 
-    it('should let whitelisted buy partial amounts several times', async () => {
-      let preBuyerTokenInBalance = await tokenIn.balanceOf(buyer1.address);
-      let preSellerTokenInBalance = await tokenIn.balanceOf(saleRecipient.address);
-      await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
-      await setNextBlockTimeStamp(SALE_START + ONE_DAY);
-      await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
-      await setNextBlockTimeStamp(SALE_START + 2 * ONE_DAY);
-      await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
-      await setNextBlockTimeStamp(SALE_START + 3 * ONE_DAY);
-      await tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].div(4));
-      let postBuyerTokenInBalance = await tokenIn.balanceOf(buyer1.address);
-      let tokenInPaid = preBuyerTokenInBalance.sub(postBuyerTokenInBalance);
-
-      // 0.05 USDC per ARENA => buying 1000.0 ARENA should cost 0.05 USDC / ARENA * 1000.0 ARENA = 50.0 USDC
-      let expectedTokenIn = ethers.utils.parseUnits(`50`, TOKEN_IN_DECIMALS);
-      expect(tokenInPaid).eq(expectedTokenIn);
-
-      // saleRecipient received entire amount
-      expect(await tokenIn.balanceOf(saleRecipient.address)).to.eq(preSellerTokenInBalance.add(tokenInPaid));
-
-      // buyer received 20% immediately, 80% locked
-      expect(await tokenOut.balanceOf(buyer1.address)).to.eq(WHITELISTED_AMOUNTS[0].div(5));
-      const vesting = await tokenLock.vesting(buyer1.address);
-      let expectedVestingStart = SALE_START + 3 * ONE_DAY;
-      expect(vesting.unlockBegin).to.eq(expectedVestingStart);
-      expect(vesting.unlockCliff).to.eq(expectedVestingStart);
-      expect(vesting.unlockEnd).to.eq(expectedVestingStart + ONE_DAY);
-      expect(vesting.lockedAmounts).to.eq(WHITELISTED_AMOUNTS[0].mul(4).div(5));
-
-      // whitelisted cannot buy more
-      await expect(tokenSale.connect(buyer1).buy(WHITELISTED_AMOUNTS[0].add(`1`))).to.be.revertedWith(
-        'TokenSale: cannot buy more than allowed'
-      );
+    it('should revert if buyer has insufficient funds', async () => {
+      await tokenIn.connect(buyer1).transfer(buyer2.address, await tokenIn.balanceOf(buyer1.address));
+      await expect(tokenSale.connect(buyer1).buy()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
     });
   });
 

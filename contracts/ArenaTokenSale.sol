@@ -77,22 +77,14 @@ contract TokenSale is Ownable {
 
     /**
      * @dev Whitelisted buyers can buy `tokenOutAmount` tokens at the `tokenOutPrice`.
-     * @param _tokenOutAmount The amount of `tokenOut` to buy
      * @return tokenInAmount_ The amount of `tokenIn`s  bought.
      */
-    function buy(uint256 _tokenOutAmount) external returns (uint256 tokenInAmount_) {
+    function buy() external returns (uint256 tokenInAmount_) {
         require(saleStart <= block.timestamp, "TokenSale: not started");
         require(block.timestamp <= saleStart + saleDuration, "TokenSale: already ended");
-        require(
-            _tokenOutAmount <= whitelistedBuyersAmount[msg.sender],
-            "TokenSale: cannot buy more than allowed"
-        );
-
-        unchecked {
-            // this subtraction does not underflow due to the check above
-            whitelistedBuyersAmount[msg.sender] -= _tokenOutAmount;
-        }
-
+        uint256 _tokenOutAmount = whitelistedBuyersAmount[msg.sender];
+        require(_tokenOutAmount > 0, "TokenSale: non-whitelisted purchaser or have already bought");
+        whitelistedBuyersAmount[msg.sender] = 0;
         tokenInAmount_ = (_tokenOutAmount * tokenOutPrice) / 1e18;
         require(
             tokenIn.transferFrom(msg.sender, saleRecipient, tokenInAmount_),
