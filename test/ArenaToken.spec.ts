@@ -87,9 +87,21 @@ describe('TokenSale', async () => {
       );
     });
 
+    it('should not allow minting until the first mint window', async () => {
+      await expect(token.connect(admin).mint(user.address, ONE_18)).to.be.revertedWith('ArenaToken: Cannot mint yet');
+    });
+
     it('should allow owner to mint new tokens', async () => {
+      await setNextBlockTimeStamp((await token.nextMint()).toNumber());
       await token.connect(admin).mint(user.address, ONE_18);
       expect(await token.balanceOf(user.address)).to.eq(ONE_18);
+    });
+
+    it('should not allow minting more than the prescribed amount', async () => {
+      await setNextBlockTimeStamp((await token.nextMint()).toNumber());
+      await expect(token.mint(user.address, (await token.totalSupply()).div(50).add(1))).to.be.revertedWith(
+        'ArenaToken: Mint exceeds maximum amount'
+      );
     });
   });
 
