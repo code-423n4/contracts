@@ -8,6 +8,7 @@ import '@nomiclabs/hardhat-waffle';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import './scripts/deploy';
+import './scripts/deployTokenSale';
 import './scripts/verify';
 import './scripts/proposals';
 
@@ -27,6 +28,9 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    develop: {
+      url: 'http://127.0.0.1:8545/'
+    },
     rinkeby: {
       chainId: 4,
       url: process.env.RINKEBY_URL || '',

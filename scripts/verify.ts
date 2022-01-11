@@ -22,7 +22,7 @@ task('verifyContracts', 'verify deployed contracts')
     revokableTokenLock = await hre.ethers.getContractAt('RevokableTokenLock', addresses['tokenLock']);
     timelock = await hre.ethers.getContractAt('TimelockController', addresses['timelock']);
     governor = await hre.ethers.getContractAt('ArenaGovernor', addresses['governor']);
-    tokenSale = await hre.ethers.getContractAt('TokenSale', addresses['tokenSale']);
+    // tokenSale = await hre.ethers.getContractAt('TokenSale', addresses['tokenSale']);
 
     let config = allConfigs[networkId];
 
@@ -37,16 +37,16 @@ task('verifyContracts', 'verify deployed contracts')
     await verifyContract(hre, revokableTokenLock.address, [token.address, addresses['deployer']]);
     await verifyContract(hre, timelock.address, [config.TIMELOCK_DELAY, [], []]);
     await verifyContract(hre, governor.address, [token.address, timelock.address]);
-    await verifyContract(hre, tokenSale.address, [
-      config.TOKEN_SALE_USDC,
-      token.address,
-      config.TOKEN_SALE_START,
-      config.TOKEN_SALE_DURATION,
-      config.TOKEN_SALE_ARENA_PRICE,
-      config.TOKEN_SALE_RECIPIENT,
-      revokableTokenLock.address,
-      config.VEST_DURATION,
-    ]);
+    // await verifyContract(hre, tokenSale.address, [
+    //   config.TOKEN_SALE_USDC,
+    //   token.address,
+    //   config.TOKEN_SALE_START,
+    //   config.TOKEN_SALE_DURATION,
+    //   config.TOKEN_SALE_ARENA_PRICE,
+    //   config.TOKEN_SALE_RECIPIENT,
+    //   revokableTokenLock.address,
+    //   config.VEST_DURATION,
+    // ]);
     process.exit(0);
   });
 
