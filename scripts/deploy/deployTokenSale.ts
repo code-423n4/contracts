@@ -43,6 +43,8 @@ const getContracts = (signer: Signer, config: typeof allConfigs[0]) => {
   if (!tokenLockAddress) throw new Error(`Deployment file did not include tokenLock address '${deploymentFilePath}'.`);
 
   return {
+    contents: contents,
+    deploymentFilePath: deploymentFilePath,
     governor: ArenaGovernor__factory.connect(governorAddress, signer),
     arenaToken: ArenaToken__factory.connect(arenaAddress, signer),
     timelock: TimelockController__factory.connect(timelockAddress, signer),
@@ -57,8 +59,12 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
   console.log(`Proposer: ${proposerAddress}`);
 
   let config = tokenSaleConfigs[networkId];
-  if (!config) throw new Error(`Unknown network ${hre.network.name} (${networkId})`);
-  const {governor, arenaToken, timelock, tokenLock} = getContracts(proposer, allConfigs[networkId]);
+  let deployConfig = allConfigs[networkId];
+  if (!config) throw new Error(`No config exists for network ${hre.network.name} (${networkId})`);
+  const {contents, deploymentFilePath, governor, arenaToken, timelock, tokenLock} = getContracts(
+    proposer,
+    deployConfig
+  );
 
   console.log(`deploying tokensale...`);
   const TokenSaleFactory = (await hre.ethers.getContractFactory('TokenSale')) as TokenSale__factory;
@@ -105,12 +111,10 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
   await tx.wait(1);
 
   console.log('exporting addresses...');
-  let addressesToExport = {
-    proposer: proposerAddress,
-    tokenSale: tokenSale.address,
-  };
+  let addressesToExport = JSON.parse(contents);
+  addressesToExport.tokenSale = tokenSale.address;
   let exportJson = JSON.stringify(addressesToExport, null, 2);
-  fs.writeFileSync(config.EXPORT_FILENAME, exportJson);
+  fs.writeFileSync(deploymentFilePath, exportJson);
 
   /////////////////////////////////
   // ACCESS CONTROL VERIFICATION //

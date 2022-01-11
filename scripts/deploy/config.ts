@@ -19,7 +19,6 @@ type TokenSaleConfig = {
   TOKEN_SALE_ARENA_PRICE: BN;
   TOKEN_SALE_RECIPIENT: string;
   TOKEN_SALE_WHITELIST: typeof TOKEN_SALE_WHITELIST;
-  EXPORT_FILENAME: string;
 };
 
 const TOKEN_SALE_WHITELIST = [
@@ -78,7 +77,6 @@ export const tokenSaleConfigs: {[key: number]: TokenSaleConfig} = {
     TOKEN_SALE_USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
     TOKEN_SALE_ARENA_PRICE: BN.from(30_000).mul(ONE_18).div(ONE_18), // 0.03 USDC * 1e18 / 1.0 ARENA
     TOKEN_SALE_RECIPIENT: '0x670f9e8B37d5816c2eB93A1D94841C66652a8E26', // TODO: change to intended recipient
-    TOKEN_SALE_WHITELIST,
-    EXPORT_FILENAME: 'polygonTokenSaleAddress.json',
+    TOKEN_SALE_WHITELIST, // TODO: update value
   },
 };
