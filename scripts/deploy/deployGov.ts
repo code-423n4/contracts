@@ -1,4 +1,3 @@
-import {task} from 'hardhat/config';
 import {expect} from 'chai';
 import fs from 'fs';
 
@@ -11,9 +10,10 @@ import {
   TimelockController,
   ArenaGovernor__factory,
   ArenaGovernor,
-} from '../typechain';
+} from '../../typechain';
 
 import {allConfigs} from './config';
+import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 let deployerAddress: string;
 let token: ArenaToken;
@@ -26,7 +26,7 @@ const ADMIN_ROLE = '0x5f58e3a2316349923ce3780f8d587db2d72378aed66a8261c916544fa6
 const PROPOSER_ROLE = '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1';
 const EXECUTOR_ROLE = '0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63';
 
-task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
+export async function deployGov(hre: HardhatRuntimeEnvironment) {
   const networkId = hre.network.config.chainId as number;
   const [deployer] = await hre.ethers.getSigners();
   deployerAddress = await deployer.getAddress();
@@ -170,4 +170,4 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
 
   console.log('verification complete!');
   process.exit(0);
-});
+}

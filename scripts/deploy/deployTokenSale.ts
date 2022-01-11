@@ -1,4 +1,3 @@
-import {task} from 'hardhat/config';
 import {BigNumber as BN, Signer} from 'ethers';
 import {expect} from 'chai';
 import fs from 'fs';
@@ -11,9 +10,10 @@ import {
   TokenSale__factory,
   TokenSale,
   TokenLock__factory,
-} from '../typechain';
+} from '../../typechain';
 
 import {allConfigs, tokenSaleConfigs} from './config';
+import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 let proposerAddress: string;
 let tokenSale: TokenSale;
@@ -50,7 +50,7 @@ const getContracts = (signer: Signer, config: typeof allConfigs[0]) => {
   };
 };
 
-task('deployTokenSale', 'deploy token sale and make proposal for relevant actions').setAction(async (taskArgs, hre) => {
+export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
   const networkId = hre.network.config.chainId as number;
   const [proposer] = await hre.ethers.getSigners();
   proposerAddress = await proposer.getAddress();
@@ -123,4 +123,4 @@ task('deployTokenSale', 'deploy token sale and make proposal for relevant action
 
   console.log('verification complete!');
   process.exit(0);
-});
+}

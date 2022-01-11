@@ -4,7 +4,7 @@ import fs from 'fs';
 
 import {ArenaToken, RevokableTokenLock, TimelockController, ArenaGovernor, TokenSale} from '../typechain';
 
-import {allConfigs} from './config';
+import {allConfigs} from './deploy/config';
 
 let token: ArenaToken;
 let revokableTokenLock: RevokableTokenLock;

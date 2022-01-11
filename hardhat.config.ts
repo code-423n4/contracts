@@ -8,7 +8,6 @@ import '@nomiclabs/hardhat-waffle';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import './scripts/deploy';
-import './scripts/deployTokenSale';
 import './scripts/verify';
 import './scripts/proposals';
 
@@ -43,6 +42,7 @@ const config: HardhatUserConfig = {
     },
   },
   typechain: {
+    outDir: 'typechain',
     target: 'ethers-v5',
   },
   gasReporter: {
