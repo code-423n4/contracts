@@ -27,6 +27,9 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    develop: {
+      url: 'http://127.0.0.1:8545/'
+    },
     rinkeby: {
       chainId: 4,
       url: process.env.RINKEBY_URL || '',
@@ -39,6 +42,7 @@ const config: HardhatUserConfig = {
     },
   },
   typechain: {
+    outDir: 'typechain',
     target: 'ethers-v5',
   },
   gasReporter: {

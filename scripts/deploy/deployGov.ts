@@ -1,5 +1,3 @@
-import {task} from 'hardhat/config';
-import {BigNumber as BN} from 'ethers';
 import {expect} from 'chai';
 import fs from 'fs';
 
@@ -12,25 +10,23 @@ import {
   TimelockController,
   ArenaGovernor__factory,
   ArenaGovernor,
-  TokenSale__factory,
-  TokenSale,
-} from '../typechain';
+} from '../../typechain';
 
 import {allConfigs} from './config';
+import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 let deployerAddress: string;
 let token: ArenaToken;
 let revokableTokenLock: RevokableTokenLock;
 let timelock: TimelockController;
 let governor: ArenaGovernor;
-let tokenSale: TokenSale;
 
 // see OZ docs: https://docs.openzeppelin.com/contracts/4.x/api/governance#timelock-roles
 const ADMIN_ROLE = '0x5f58e3a2316349923ce3780f8d587db2d72378aed66a8261c916544fa6846ca5';
 const PROPOSER_ROLE = '0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1';
 const EXECUTOR_ROLE = '0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63';
 
-task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
+export async function deployGov(hre: HardhatRuntimeEnvironment) {
   const networkId = hre.network.config.chainId as number;
   const [deployer] = await hre.ethers.getSigners();
   deployerAddress = await deployer.getAddress();
@@ -81,20 +77,8 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   await governor.deployed();
   console.log(`governor address: ${governor.address}`);
 
-  console.log(`deploying tokensale...`);
-  const TokenSaleFactory = (await hre.ethers.getContractFactory('TokenSale')) as TokenSale__factory;
-  tokenSale = await TokenSaleFactory.deploy(
-    config.TOKEN_SALE_USDC,
-    token.address,
-    config.TOKEN_SALE_START,
-    config.TOKEN_SALE_DURATION,
-    config.TOKEN_SALE_ARENA_PRICE,
-    config.TOKEN_SALE_RECIPIENT,
-    revokableTokenLock.address,
-    config.VEST_DURATION
-  );
-  await tokenSale.deployed();
-  console.log(`tokensale address: ${tokenSale.address}`);
+  console.log(`transfer remaining tokens to timelock`);
+  await token.transfer(timelock.address, config.FREE_SUPPLY);
 
   // give governor proposer role
   // https://docs.openzeppelin.com/contracts/4.x/api/governance#timelock-proposer
@@ -111,25 +95,9 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
 
   // set revoker role in TokenLock to timelock
   await revokableTokenLock.setRevoker(timelock.address);
-  // set token sale in TokenLock
-  await revokableTokenLock.setTokenSale(tokenSale.address);
 
   // transfer tokenlock admin role to timelock
   await revokableTokenLock.transferOwnership(timelock.address);
-
-  // set up token sale whitelist
-  await tokenSale.changeWhiteList(
-    config.TOKEN_SALE_WHITELIST.map(({buyer}) => buyer),
-    config.TOKEN_SALE_WHITELIST.map(({arenaAmount}) => arenaAmount)
-  );
-  // transfer token sale admin role to timelock
-  await tokenSale.transferOwnership(timelock.address);
-
-  // transfer all tokens held by deployer to token sale and timelock
-  const TOKEN_SALE_SUPPLY = config.TOKEN_SALE_WHITELIST.reduce((sum, el) => sum.add(el.arenaAmount), BN.from(`0`));
-  console.log(`transferring ${TOKEN_SALE_SUPPLY.toString()} ARENA to TokenSale. Remaining back to Timelock`);
-  await token.transfer(tokenSale.address, TOKEN_SALE_SUPPLY);
-  await token.transfer(timelock.address, config.FREE_SUPPLY.sub(TOKEN_SALE_SUPPLY));
 
   // transfer token admin role to timelock
   await token.transferOwnership(timelock.address);
@@ -141,7 +109,6 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
     tokenLock: revokableTokenLock.address,
     timelock: timelock.address,
     governor: governor.address,
-    tokenSale: tokenSale.address,
   };
   let exportJson = JSON.stringify(addressesToExport, null, 2);
   fs.writeFileSync(config.EXPORT_FILENAME, exportJson);
@@ -169,9 +136,6 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   // TokenLock revoker should be timelock
   expect(await revokableTokenLock.revoker()).to.be.eq(timelock.address);
 
-  // TokenLock token sale should be set
-  expect(await revokableTokenLock.tokenSale()).to.be.eq(tokenSale.address);
-
   // TokenLock owner should be timelock
   expect(await revokableTokenLock.owner()).to.be.eq(timelock.address);
 
@@ -181,11 +145,6 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   // check Token's tokenlock has been set
   expect(await token.tokenLock()).to.be.eq(revokableTokenLock.address);
 
-  // check TokenSale's tokenlock has been set
-  expect(await tokenSale.tokenLock()).to.be.eq(revokableTokenLock.address);
-  // Token's owner should be timelock
-  expect(await tokenSale.owner()).to.be.eq(timelock.address);
-
   /////////////////////////
   // CONFIG VERIFICATION //
   /////////////////////////
@@ -194,11 +153,8 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
   // check ArenaToken's token balance == AIRDROP_SUPPLY
   expect(await token.balanceOf(token.address)).to.be.eq(config.AIRDROP_SUPPLY);
 
-  // check timelock's token balance == TOKEN_SALE_SUPPLY
-  expect(await token.balanceOf(tokenSale.address)).to.be.eq(TOKEN_SALE_SUPPLY);
-
-  // check timelock's token balance == FREE_SUPPLY - TOKEN_SALE_SUPPLY (rest of it)
-  expect(await token.balanceOf(timelock.address)).to.be.eq(config.FREE_SUPPLY.sub(TOKEN_SALE_SUPPLY));
+  // check timelock's token balance == FREE_SUPPLY
+  expect(await token.balanceOf(timelock.address)).to.be.eq(config.FREE_SUPPLY);
 
   // check timelock's minDelay
   expect(await timelock.getMinDelay()).to.be.eq(config.TIMELOCK_DELAY);
@@ -214,4 +170,4 @@ task('deploy', 'deploy contracts').setAction(async (taskArgs, hre) => {
 
   console.log('verification complete!');
   process.exit(0);
-});
+}

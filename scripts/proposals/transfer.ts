@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import _ from 'lodash';
 import {ArenaGovernor__factory, ArenaToken__factory} from '../../typechain';
-import {allConfigs} from '../config';
+import {allConfigs} from '../deploy/config';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
 
 let transferInterface = new ethers.utils.Interface([`function transfer(address to, uint256 amount)`]);

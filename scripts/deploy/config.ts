@@ -1,5 +1,5 @@
 import {BigNumber as BN, constants} from 'ethers';
-import {ONE_18, ONE_DAY, ONE_YEAR} from '../test/shared/Constants';
+import {ONE_18, ONE_DAY, ONE_YEAR} from '../../test/shared/Constants';
 
 type Config = {
   FREE_SUPPLY: BN;
@@ -9,13 +9,16 @@ type Config = {
   VEST_DURATION: number;
   MERKLE_ROOT: string;
   TIMELOCK_DELAY: number;
+  EXPORT_FILENAME: string;
+};
+
+type TokenSaleConfig = {
   TOKEN_SALE_START: number;
   TOKEN_SALE_DURATION: number;
   TOKEN_SALE_USDC: string;
   TOKEN_SALE_ARENA_PRICE: BN;
   TOKEN_SALE_RECIPIENT: string;
   TOKEN_SALE_WHITELIST: typeof TOKEN_SALE_WHITELIST;
-  EXPORT_FILENAME: string;
 };
 
 const TOKEN_SALE_WHITELIST = [
@@ -51,29 +54,29 @@ export const allConfigs: {[key: number]: Config} = {
     VEST_DURATION: 4 * ONE_DAY,
     MERKLE_ROOT: '0xd97c9a423833d78e0562b8ed2d14752b54e7ef9b52314cafb197e3a339299901',
     TIMELOCK_DELAY: 1800, // 30 mins
-    TOKEN_SALE_START: Math.floor(new Date(`2021-12-27T13:16:00.000Z`).getTime() / 1000),
-    TOKEN_SALE_DURATION: 14 * ONE_DAY,
-    TOKEN_SALE_USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174', // USDC 6 decimals
-    TOKEN_SALE_ARENA_PRICE: BN.from(30_000).mul(ONE_18).div(ONE_18), // 0.03 USDC * 1e18 / 1.0 ARENA
-    TOKEN_SALE_RECIPIENT: '0x670f9e8B37d5816c2eB93A1D94841C66652a8E26', // TODO: change this to real recipient
-    TOKEN_SALE_WHITELIST,
     EXPORT_FILENAME: 'rinkebyAddresses.json',
   },
   // polygon mainnet
   137: {
-    FREE_SUPPLY: BN.from(900).mul(1_000_000).mul(constants.WeiPerEther), // 900M
-    AIRDROP_SUPPLY: BN.from(100).mul(1_000_000).mul(constants.WeiPerEther), // 100M
+    FREE_SUPPLY: BN.from(640_826_767).mul(constants.WeiPerEther), // 1B - mainnet markle tokenTotal
+    AIRDROP_SUPPLY: BN.from(359_173_233).mul(constants.WeiPerEther), // mainnet merkle tokenTotal
     CLAIMABLE_PROPORTION: 2000, // 20%
-    CLAIM_END_DATE: '2022-12-25', // TODO: edit value
+    CLAIM_END_DATE: '2023-1-11',
     VEST_DURATION: 4 * ONE_YEAR,
-    MERKLE_ROOT: '0x0', // TODO: edit value
+    MERKLE_ROOT: '0xb86e0dced055310e26ce11e69d47b6e6064be988564fb002d6ba5a29e7eee713',
     TIMELOCK_DELAY: 2 * ONE_DAY, // 2 days (same as ENS)
-    TOKEN_SALE_START: Math.floor(new Date(`2021-12-27T13:50:00.000Z`).getTime() / 1000),
+    EXPORT_FILENAME: 'polygonAddresses.json',
+  },
+};
+
+export const tokenSaleConfigs: {[key: number]: TokenSaleConfig} = {
+  // polygon mainnet
+  137: {
+    TOKEN_SALE_START: Math.floor(new Date(`2022-01-12T00:00:00.000Z`).getTime() / 1000),
     TOKEN_SALE_DURATION: 14 * ONE_DAY,
     TOKEN_SALE_USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
     TOKEN_SALE_ARENA_PRICE: BN.from(30_000).mul(ONE_18).div(ONE_18), // 0.03 USDC * 1e18 / 1.0 ARENA
-    TOKEN_SALE_RECIPIENT: '0x670f9e8B37d5816c2eB93A1D94841C66652a8E26',
-    TOKEN_SALE_WHITELIST,
-    EXPORT_FILENAME: 'polygonAddresses.json',
+    TOKEN_SALE_RECIPIENT: '0x670f9e8B37d5816c2eB93A1D94841C66652a8E26', // TODO: change to intended recipient
+    TOKEN_SALE_WHITELIST, // TODO: update value
   },
 };
