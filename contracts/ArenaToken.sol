@@ -15,6 +15,12 @@ import "../interfaces/IRevokableTokenLock.sol";
 contract ArenaToken is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
     using BitMaps for BitMaps.BitMap;
 
+    /// mint cooldown period
+    uint256 public constant MIN_MINT_INTERVAL = 365 days;
+    /// maximum tokens allowed per mint
+    /// 10_000 = 100%
+    uint256 public constant MINT_CAP = 200; // 2%
+
     bytes32 public merkleRoot;
     /// Proportion of airdropped tokens that are immediately claimable
     /// 10_000 = 100%
@@ -27,6 +33,8 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
 
     /// vesting duration
     uint256 public vestDuration;
+    /// timestamp till next mint is allowed
+    uint256 public nextMint;
 
     event MerkleRootChanged(bytes32 merkleRoot);
     event Claim(address indexed claimant, uint256 amount);
@@ -52,6 +60,7 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
         require(_claimPeriodEnds > block.timestamp, "cannot have a backward time");
         _mint(msg.sender, _freeSupply);
         _mint(address(this), _airdropSupply);
+        nextMint = block.timestamp + MIN_MINT_INTERVAL;
         claimableProportion = _claimableProportion;
         claimPeriodEnds = _claimPeriodEnds;
         vestDuration = _vestDuration;
@@ -147,6 +156,13 @@ contract ArenaToken is ERC20, ERC20Burnable, Ownable, ERC20Permit, ERC20Votes {
      * @param amount The quantity of tokens to mint.
      */
     function mint(address dest, uint256 amount) external onlyOwner {
+        require(
+            amount <= (totalSupply() * MINT_CAP) / 10_000,
+            "ArenaToken: Mint exceeds maximum amount"
+        );
+        require(block.timestamp >= nextMint, "ArenaToken: Cannot mint yet");
+
+        nextMint = block.timestamp + MIN_MINT_INTERVAL;
         _mint(dest, amount);
     }
 
