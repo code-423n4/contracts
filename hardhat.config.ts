@@ -27,6 +27,11 @@ const config: HardhatUserConfig = {
     },
   },
   networks: {
+    hardhat: {
+      // forking: {
+      //   url: process.env.POLYGON_URL!,
+      // },
+    },
     develop: {
       url: 'http://127.0.0.1:8545/'
     },
@@ -51,6 +56,10 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  mocha: {
+    // 1 hour, essentially disabled auto timeout
+    timeout: 60 * 60 * 1000,
   },
 };
 
