@@ -36,7 +36,7 @@ export const createAndExecuteProposal = async ({
   // get first event (ProposalCreated), then get first arg of that event (proposalId)
   const proposalId: string = events![0].args![0].toString();
 
-  // 2. vote on proposal
+  // 2. advance time past voting delay and vote on proposal
   const voteStartBlock = await governor.proposalSnapshot(proposalId);
   await setNextBlockNumber(voteStartBlock.toNumber() + 1); // is a blocknumber which fits in Number
   tx = await governor.connect(user)['castVote'](proposalId, `1`);

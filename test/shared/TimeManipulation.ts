@@ -16,8 +16,8 @@ export const increaseNextBlockTime = async (seconds: number) => {
 export const setNextBlockNumber = async (blockNumber: number) => {
   let currentBlock = await getHeadBlockNumber();
   for (; currentBlock < blockNumber; currentBlock++) {
-    // TODO: can this be made more efficient?
-    await hre.network.provider.send('evm_increaseTime', [2]); // polygon has a block time of 2.2 seconds
+    // polygon has a block time of 2.2 seconds
+    await hre.network.provider.send('evm_increaseTime', [2]);
     await hre.network.provider.send('evm_mine', []);
   }
 };
