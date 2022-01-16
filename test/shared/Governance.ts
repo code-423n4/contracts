@@ -2,6 +2,7 @@ import {Signer} from 'ethers';
 import {ethers} from 'hardhat';
 import {impersonateAccountWithFunds, stopImpersonateAccount} from '../shared/AccountManipulation';
 import {increaseNextBlockTime, setNextBlockNumber} from '../shared/TimeManipulation';
+import {POLYGON_AVERAGE_BLOCK_TIME} from './Constants';
 import {DeployedContracts} from './Forking';
 
 export const createAndExecuteProposal = async ({
@@ -18,17 +19,17 @@ export const createAndExecuteProposal = async ({
   values: string[];
   calldatas: string[];
 } & DeployedContracts) => {
-  // we need address with min. proposalThreshold tokens to propose
-  // 1. borrow some treasury tokens to user
-  const quorumAmount = await governor.quorumVotes();
-  // careful, this sends ETH to timelock which might break real-world simulation for proposals involving Timelock ETH
+  // 0. set voting delay & duration to 2 blocks, otherwise need to simulate 302,400 blocks
   const timeLockSigner = await impersonateAccountWithFunds(timeLock.address);
-  await arenaToken.connect(timeLockSigner).transfer(await user.getAddress(), quorumAmount);
-  // set voting delay & duration to 2 blocks, otherwise need to simulate 302,400 blocks
+  let originalVotingDelay = await governor.votingDelay();
+  let originalVotingPeriod = await governor.votingPeriod();
   await governor.connect(timeLockSigner).setVotingDelay(`2`);
   await governor.connect(timeLockSigner).setVotingPeriod(`2`);
-  await stopImpersonateAccount(timeLock.address);
 
+  // 1. borrow some treasury tokens to user as we need signer with min. proposalThreshold tokens to propose
+  const quorumAmount = await governor.quorumVotes();
+  // careful, this sends ETH to timelock which might break real-world simulation for proposals involving Timelock ETH
+  await arenaToken.connect(timeLockSigner).transfer(await user.getAddress(), quorumAmount);
   await arenaToken.connect(user).delegate(await user.getAddress());
   const descriptionHash = ethers.utils.keccak256([]); // keccak(``)
   let tx = await governor.connect(user)['propose(address[],uint256[],bytes[],string)'](targets, values, calldatas, ``);
@@ -38,6 +39,8 @@ export const createAndExecuteProposal = async ({
 
   // 2. advance time past voting delay and vote on proposal
   const voteStartBlock = await governor.proposalSnapshot(proposalId);
+  // simulate elapsed time close to original voting delay
+  await increaseNextBlockTime(Math.floor(POLYGON_AVERAGE_BLOCK_TIME * originalVotingDelay.toNumber()));
   await setNextBlockNumber(voteStartBlock.toNumber() + 1); // is a blocknumber which fits in Number
   tx = await governor.connect(user)['castVote'](proposalId, `1`);
 
@@ -46,11 +49,18 @@ export const createAndExecuteProposal = async ({
 
   // 4. advance time past voting period and queue proposal calls to Timelock via GovernorTimelockControl.queue
   const voteEndBlock = await governor.proposalDeadline(proposalId);
+  // simulate elapsed time close to original voting delay
+  await increaseNextBlockTime(Math.floor(POLYGON_AVERAGE_BLOCK_TIME * originalVotingPeriod.toNumber()));
   await setNextBlockNumber(voteEndBlock.toNumber() + 1); // is a blocknumber which fits in Number
   tx = await governor
     .connect(user)
     ['queue(address[],uint256[],bytes[],bytes32)'](targets, values, calldatas, descriptionHash);
   await tx.wait();
+
+  // can revert Governor changes now
+  await governor.connect(timeLockSigner).setVotingDelay(originalVotingDelay);
+  await governor.connect(timeLockSigner).setVotingPeriod(originalVotingPeriod);
+  await stopImpersonateAccount(timeLock.address);
 
   // 5. advance time past timelock delay and then execute
   const timeLockMinDelaySeconds = await timeLock.getMinDelay();
