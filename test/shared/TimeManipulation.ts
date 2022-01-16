@@ -1,5 +1,6 @@
 import hre from 'hardhat';
 import {BigNumber as BN} from 'ethers';
+import {POLYGON_AVERAGE_BLOCK_TIME} from './Constants';
 
 export async function getHeadBlockNumber(): Promise<number> {
   return BN.from(await hre.network.provider.send('eth_blockNumber', [])).toNumber();
@@ -16,8 +17,7 @@ export const increaseNextBlockTime = async (seconds: number) => {
 export const setNextBlockNumber = async (blockNumber: number) => {
   let currentBlock = await getHeadBlockNumber();
   for (; currentBlock < blockNumber; currentBlock++) {
-    // polygon has a block time of 2.2 seconds
-    await hre.network.provider.send('evm_increaseTime', [2]);
+    await hre.network.provider.send('evm_increaseTime', [Math.round(POLYGON_AVERAGE_BLOCK_TIME)]);
     await hre.network.provider.send('evm_mine', []);
   }
 };
