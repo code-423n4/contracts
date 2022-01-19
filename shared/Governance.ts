@@ -1,9 +1,10 @@
 import {Signer} from 'ethers';
 import {ethers} from 'hardhat';
-import {impersonateAccountWithFunds, stopImpersonateAccount} from '../shared/AccountManipulation';
-import {increaseNextBlockTime, setNextBlockNumber} from '../shared/TimeManipulation';
+import {impersonateAccountWithFunds, stopImpersonateAccount} from './AccountManipulation';
+import {increaseNextBlockTime, setNextBlockNumber} from './TimeManipulation';
 import {POLYGON_AVERAGE_BLOCK_TIME} from './Constants';
 import {DeployedContracts} from './Forking';
+import {getABIFromPolygonscan} from './Polygonscan';
 
 export const createAndExecuteProposal = async ({
   governor,
@@ -23,15 +24,18 @@ export const createAndExecuteProposal = async ({
   const timeLockSigner = await impersonateAccountWithFunds(timeLock.address);
   let originalVotingDelay = await governor.votingDelay();
   let originalVotingPeriod = await governor.votingPeriod();
+  console.log('setting voting delay and duration to 2 blocks...');
   await governor.connect(timeLockSigner).setVotingDelay(`2`);
   await governor.connect(timeLockSigner).setVotingPeriod(`2`);
 
   // 1. borrow some treasury tokens to user as we need signer with min. proposalThreshold tokens to propose
   const quorumAmount = await governor.quorumVotes();
   // careful, this sends ETH to timelock which might break real-world simulation for proposals involving Timelock ETH
+  console.log('transferring tokens to user for proposal creation...');
   await arenaToken.connect(timeLockSigner).transfer(await user.getAddress(), quorumAmount);
   await arenaToken.connect(user).delegate(await user.getAddress());
   const descriptionHash = ethers.utils.keccak256([]); // keccak(``)
+  console.log('creating proposal...');
   let tx = await governor.connect(user)['propose(address[],uint256[],bytes[],string)'](targets, values, calldatas, ``);
   let {events} = await tx.wait();
   // get first event (ProposalCreated), then get first arg of that event (proposalId)
@@ -42,6 +46,7 @@ export const createAndExecuteProposal = async ({
   // simulate elapsed time close to original voting delay
   await increaseNextBlockTime(Math.floor(POLYGON_AVERAGE_BLOCK_TIME * originalVotingDelay.toNumber()));
   await setNextBlockNumber(voteStartBlock.toNumber() + 1); // is a blocknumber which fits in Number
+  console.log('casting vote...');
   tx = await governor.connect(user)['castVote'](proposalId, `1`);
 
   // 3. return borrowed tokens
@@ -52,12 +57,12 @@ export const createAndExecuteProposal = async ({
   // simulate elapsed time close to original voting delay
   await increaseNextBlockTime(Math.floor(POLYGON_AVERAGE_BLOCK_TIME * originalVotingPeriod.toNumber()));
   await setNextBlockNumber(voteEndBlock.toNumber() + 1); // is a blocknumber which fits in Number
-  tx = await governor
-    .connect(user)
-    ['queue(address[],uint256[],bytes[],bytes32)'](targets, values, calldatas, descriptionHash);
+  console.log('queueing proposal...');
+  tx = await governor.connect(user)['queue(uint256)'](proposalId);
   await tx.wait();
 
   // can revert Governor changes now
+  console.log('resetting voting delay and period...');
   await governor.connect(timeLockSigner).setVotingDelay(originalVotingDelay);
   await governor.connect(timeLockSigner).setVotingPeriod(originalVotingPeriod);
   await stopImpersonateAccount(timeLock.address);
@@ -65,9 +70,20 @@ export const createAndExecuteProposal = async ({
   // 5. advance time past timelock delay and then execute
   const timeLockMinDelaySeconds = await timeLock.getMinDelay();
   await increaseNextBlockTime(timeLockMinDelaySeconds.toNumber());
-  await governor
-    .connect(user)
-    ['execute(address[],uint256[],bytes[],bytes32)'](targets, values, calldatas, descriptionHash);
+  console.log('executing proposal...');
+  tx = await governor.connect(user)['execute(uint256)'](proposalId);
+
+  let result = await tx.wait(1);
+  targets.map(async (target) => {
+    // get ABI
+    let abi = await getABIFromPolygonscan(target);
+    let iface = new ethers.utils.Interface(abi);
+    let events = result.logs.map((log) => iface.parseLog(log));
+    console.log(events);
+  });
+
+  let timelockEvents = result.logs.map((log) => timeLock.interface.parseLog(log));
+  console.log(timelockEvents);
 
   return proposalId;
 };

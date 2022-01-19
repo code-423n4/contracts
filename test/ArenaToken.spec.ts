@@ -4,9 +4,9 @@ import * as fs from 'fs';
 import {ethers, waffle} from 'hardhat';
 import * as path from 'path';
 import {ArenaToken, RevokableTokenLock} from '../typechain';
-import {impersonateAccountWithFunds, stopImpersonateAccount} from './shared/AccountManipulation';
-import {ONE_18, ONE_DAY, ONE_YEAR} from './shared/Constants';
-import {resetNetwork, setNextBlockTimeStamp} from './shared/TimeManipulation';
+import {impersonateAccountWithFunds, stopImpersonateAccount} from '../shared/AccountManipulation';
+import {ONE_18, ONE_DAY, ONE_YEAR} from '../shared/Constants';
+import {resetNetwork, setNextBlockTimeStamp} from '../shared/TimeManipulation';
 import {MerkleDistributorInfo} from '../src/parse-balance-map';
 
 const {solidity, loadFixture} = waffle;

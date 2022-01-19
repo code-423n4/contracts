@@ -10,7 +10,7 @@ import {
   TimelockController__factory,
   TokenLock,
   TokenLock__factory,
-} from '../../typechain';
+} from '../typechain';
 
 export type DeployedContracts = {
   governor: ArenaGovernor;
@@ -49,3 +49,17 @@ export const getPolygonContracts = (signer: Signer): DeployedContracts => {
     tokenLock: TokenLock__factory.connect(tokenLockAddress, signer),
   };
 };
+
+export function getForkParams() {
+  if (process.env.POLYGON_URL == undefined) {
+    console.log(`Missing POLYGON_URL in .env`);
+    process.exit(1);
+  }
+  let forkParams: any = {
+    forking: {
+      jsonRpcUrl: process.env.POLYGON_URL
+    }
+  };
+  if (process.env.FORK_BLOCK) forkParams['forking']['blockNumber'] = Number(process.env.FORK_BLOCK);
+  return forkParams;
+}

@@ -1,5 +1,5 @@
 import {BigNumber as BN, constants} from 'ethers';
-import {ONE_18, ONE_DAY, ONE_YEAR} from '../../test/shared/Constants';
+import {ONE_18, ONE_DAY, ONE_YEAR} from '../../shared/Constants';
 
 type Config = {
   FREE_SUPPLY: BN;

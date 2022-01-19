@@ -1,8 +1,8 @@
 import chai, {expect} from 'chai';
 import {waffle} from 'hardhat';
-import {ZERO} from './shared/Constants';
-import {getPolygonContracts} from './shared/Forking';
-import {createAndExecuteProposal} from './shared/Governance';
+import {ZERO} from '../shared/Constants';
+import {getPolygonContracts} from '../shared/Forking';
+import {createAndExecuteProposal} from '../shared/Governance';
 
 const {solidity} = waffle;
 chai.use(solidity);
