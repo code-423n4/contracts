@@ -77,7 +77,9 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
     config.TOKEN_SALE_ARENA_PRICE,
     config.TOKEN_SALE_RECIPIENT,
     tokenLock.address,
-    allConfigs[networkId].VEST_DURATION
+    timelock.address,
+    allConfigs[networkId].VEST_DURATION,
+    config.RECIPIENT_AMOUNT
   );
   await tokenSale.deployed();
   console.log(`tokenSale address: ${tokenSale.address}`);
@@ -120,8 +122,6 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
   // ACCESS CONTROL VERIFICATION //
   /////////////////////////////////
   console.log('verifying access control settings...');
-  // check tokenSale's tokenlock has been set
-  expect(await tokenSale.tokenLock()).to.be.eq(tokenLock.address);
   // tokenSale's owner should be timelock
   expect(await tokenSale.owner()).to.be.eq(timelock.address);
 
