@@ -32,7 +32,7 @@ const BUYER_ARENA_AMOUNT = BN.from(`1000`).mul(ONE_ARENA);
 const WHITELISTED_AMOUNTS = Array(3).fill(BUYER_ARENA_AMOUNT);
 
 describe('TokenSale', async () => {
-  const [user, admin, saleRecipient, buyer1, buyer2, buyer3, timelock, other] = waffle.provider.getWallets();
+  const [user, admin, saleRecipient, buyer1, buyer2, buyer3, other] = waffle.provider.getWallets();
   WHITELISTED_ACCOUNTS.push(buyer1.address, buyer2.address, buyer3.address);
 
   async function fixture() {
@@ -54,7 +54,6 @@ describe('TokenSale', async () => {
       TOKEN_OUT_PRICE,
       saleRecipient.address,
       tokenLock.address,
-      timelock.address,
       ONE_DAY,
       SALE_RECIPIENT_AMOUNT
     )) as TokenSale;
@@ -275,7 +274,7 @@ describe('TokenSale', async () => {
       await expect(tokenSale.connect(buyer1).buy()).to.be.revertedWith('ERC20: transfer amount exceeds balance');
     });
 
-    it('should transfer correct amounts to saleRecipient and timelock depending on remaining sale recipient', async () => {
+    it('should transfer correct amounts to saleRecipient and owner depending on remaining sale recipient', async () => {
       // not exceeded, transfer fully to saleRecipient
       await expect(() => tokenSale.connect(buyer1).buy()).to.changeTokenBalances(
         tokenIn,
@@ -283,17 +282,17 @@ describe('TokenSale', async () => {
         [BUYER_USDC_AMOUNT.mul(-1), BUYER_USDC_AMOUNT]
       );
 
-      // will be exceeded, half to saleRecipient, remaining to timelock
+      // will be exceeded, half to saleRecipient, remaining to owner
       await expect(() => tokenSale.connect(buyer2).buy()).to.changeTokenBalances(
         tokenIn,
-        [buyer2, saleRecipient, timelock],
+        [buyer2, saleRecipient, admin],
         [BUYER_USDC_AMOUNT.mul(-1), BUYER_USDC_AMOUNT.div(2), BUYER_USDC_AMOUNT.div(2)]
       );
 
-      // have been exceeded, all to timelock
+      // have been exceeded, all to admin
       await expect(() => tokenSale.connect(buyer3).buy()).to.changeTokenBalances(
         tokenIn,
-        [buyer3, timelock],
+        [buyer3, admin],
         [BUYER_USDC_AMOUNT.mul(-1), BUYER_USDC_AMOUNT]
       );
     });
@@ -328,18 +327,18 @@ describe('TokenSale', async () => {
         'TokenSale: non-whitelisted purchaser or have already bought'
       );
 
-      // make purchases, expect correct USDC amounts to be transferred to saleRecipient / timelock
-      // will exceed remainingSaleRecipient amount, half to saleRecipient, remaining to timelock
+      // make purchases, expect correct USDC amounts to be transferred to saleRecipient / admin
+      // will exceed remainingSaleRecipient amount, half to saleRecipient, remaining to admin
       await expect(() => tokenSale.connect(buyer2).buy()).to.changeTokenBalances(
         tokenIn,
-        [buyer2, saleRecipient, timelock],
+        [buyer2, saleRecipient, admin],
         [BUYER_USDC_AMOUNT.mul(-1), BUYER_USDC_AMOUNT.div(2), BUYER_USDC_AMOUNT.div(2)]
       );
 
-      // remainingSaleRecipient exceeded, all to timelock
+      // remainingSaleRecipient exceeded, all to admin
       await expect(() => tokenSale.connect(buyer3).buy()).to.changeTokenBalances(
         tokenIn,
-        [buyer3, timelock],
+        [buyer3, admin],
         [BUYER_USDC_AMOUNT.mul(-1), BUYER_USDC_AMOUNT]
       );
     });

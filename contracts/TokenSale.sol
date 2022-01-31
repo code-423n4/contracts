@@ -22,8 +22,6 @@ contract TokenSale is Ownable {
     address internal immutable saleRecipient;
     /// amount receivable by sale recipient
     uint256 public remainingSaleRecipientAmount;
-    /// DAO receives the remaining proceeds of the sale
-    address internal immutable timelockController;
     /// vesting contract
     ITokenLockVestReader public immutable tokenLock;
     /// vesting duration
@@ -35,6 +33,7 @@ contract TokenSale is Ownable {
     /// i.e., it should be provided as tokenInAmount * 1e18 / tokenOutAmount
     uint256 public immutable tokenOutPrice;
 
+    event BuyerWhitelisted(address indexed buyer, uint256 amount);
     event Sale(address indexed buyer, uint256 amountIn, uint256 amountOut);
 
     /**
@@ -46,9 +45,8 @@ contract TokenSale is Ownable {
      * @param _tokenOutPrice The tokenIn per tokenOut price. precision should be in tokenInDecimals - tokenOutDecimals + 18
      * @param _saleRecipient The address receiving a portion proceeds of the sale
      * @param _tokenLock The contract in which _tokenOut will be vested in
-     * @param _timelockController The address receiving the remaining proceeds of the sale. Should be C4 timelock controller
      * @param _vestDuration Token vesting duration
-     * @param _remainingSaleRecipientAmount Amount receivable by sale recipient
+     * @param _saleRecipientAmount Amount receivable by sale recipient
      */
     constructor(
         ERC20 _tokenIn,
@@ -58,9 +56,8 @@ contract TokenSale is Ownable {
         uint256 _tokenOutPrice,
         address _saleRecipient,
         address _tokenLock,
-        address _timelockController,
         uint256 _vestDuration,
-        uint256 _remainingSaleRecipientAmount
+        uint256 _saleRecipientAmount
     ) {
         require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
         require(_saleDuration > 0, "TokenSale: the sale duration must not be zero");
@@ -71,7 +68,6 @@ contract TokenSale is Ownable {
             "TokenSale: sale recipient should not be zero or this"
         );
         require(_tokenLock != address(0), "Address cannot be 0x");
-        require(_timelockController != address(0), "Address cannot be 0x");
 
         tokenIn = _tokenIn;
         tokenOut = _tokenOut;
@@ -80,9 +76,8 @@ contract TokenSale is Ownable {
         tokenOutPrice = _tokenOutPrice;
         saleRecipient = _saleRecipient;
         tokenLock = ITokenLockVestReader(_tokenLock);
-        timelockController = _timelockController;
         vestDuration = _vestDuration;
-        remainingSaleRecipientAmount = _remainingSaleRecipientAmount;
+        remainingSaleRecipientAmount = _saleRecipientAmount;
     }
 
     /**
@@ -106,10 +101,10 @@ contract TokenSale is Ownable {
             );
         } else {
             // saleRecipient will either be receiving or have received full allocation
-            // portion will go to timelock
-            uint256 timelockControllerAmount = tokenInAmount_ - remainingSaleRecipientAmount;
+            // portion will go to owner
+            uint256 ownerAmount = tokenInAmount_ - remainingSaleRecipientAmount;
             require(
-                tokenIn.transferFrom(msg.sender, timelockController, timelockControllerAmount),
+                tokenIn.transferFrom(msg.sender, owner(), ownerAmount),
                 "TokenSale: tokenIn transfer failed"
             );
             if (remainingSaleRecipientAmount > 0) {
@@ -162,7 +157,10 @@ contract TokenSale is Ownable {
             _buyers.length == _newTokenOutAmounts.length,
             "TokenSale: parameter length mismatch"
         );
-        require(block.timestamp < saleStart, "TokenSale: ongoing sale");
+        require(
+            block.timestamp < saleStart || block.timestamp > saleStart + saleDuration,
+            "TokenSale: ongoing sale"
+        );
 
         for (uint256 i = 0; i < _buyers.length; i++) {
             // Does not cover the case that the buyer has not claimed his airdrop
@@ -170,6 +168,7 @@ contract TokenSale is Ownable {
             ITokenLockVestReader.VestingParams memory vestParams = tokenLock.vesting(_buyers[i]);
             require(vestParams.unlockBegin == 0, "TokenSale: buyer has existing vest schedule");
             whitelistedBuyersAmount[_buyers[i]] = _newTokenOutAmounts[i];
+            emit BuyerWhitelisted(_buyers[i], _newTokenOutAmounts[i]);
         }
     }
 

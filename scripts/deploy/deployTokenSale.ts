@@ -77,7 +77,6 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
     config.TOKEN_SALE_ARENA_PRICE,
     config.TOKEN_SALE_RECIPIENT,
     tokenLock.address,
-    timelock.address,
     allConfigs[networkId].VEST_DURATION,
     config.RECIPIENT_AMOUNT
   );
