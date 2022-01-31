@@ -13,7 +13,7 @@ export async function simulateExistingProposal(proposalId: string, hre: HardhatR
   });
 
   const proposalActions = await deployment.governor.getActions(proposalId);
-  let valuesArray = [...proposalActions[1]].map((value) => value.toString());
+  let valuesArray = proposalActions[1].map((value) => value.toString());
   console.log(`proposal targets: ${proposalActions.targets}`);
   console.log(`proposal values: ${valuesArray}`);
   console.log(`proposal calldatas: ${proposalActions.calldatas}`);
