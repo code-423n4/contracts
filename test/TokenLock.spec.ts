@@ -8,7 +8,7 @@ import {mineBlockAt, resetNetwork, setNextBlockTimeStamp} from '../shared/TimeMa
 const {solidity, loadFixture} = waffle;
 chai.use(solidity);
 
-let token: IERC20;
+let token: TestERC20;
 let tokenLock: TokenLock;
 let unlockBegin: number;
 let unlockCliff: number;
@@ -20,7 +20,7 @@ describe('TokenLock', async () => {
   // TODO: maybe create shared fixtures that can be imported by the test files
   async function fixture() {
     const TokenFactory = await ethers.getContractFactory('TestERC20');
-    const token = (await TokenFactory.connect(admin).deploy('TEST', 'TEST')) as IERC20;
+    const token = (await TokenFactory.connect(admin).deploy('TEST', 'TEST')) as TestERC20;
     const TokenLockFactory = await ethers.getContractFactory('TokenLock');
     const tokenLock = (await TokenLockFactory.connect(admin).deploy(token.address)) as TokenLock;
     return {token, tokenLock};
