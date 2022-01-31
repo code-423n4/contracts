@@ -74,9 +74,9 @@ export const createAndExecuteProposal = async ({
   tx = await governor.connect(user)['execute(uint256)'](proposalId);
 
   let result = await tx.wait(1);
-  targets.map(async (target) => {
-    // get ABI
-    let abi = await getABIFromPolygonscan(target);
+
+  for (let i = 0; i < targets.length; i++) {
+    let abi = await getABIFromPolygonscan(targets[i]);
     let iface = new ethers.utils.Interface(abi);
     let events = result.logs.map((log) => {
       try {
@@ -85,10 +85,10 @@ export const createAndExecuteProposal = async ({
         // no matching event
       }
     });
-    console.log(`### TARGET ${target} EVENTS ###`);
+    console.log(`### TARGET ${targets[i]} EVENTS ###`);
     console.log(events);
     console.log(`###################################`);
-  });
+  }
 
   let timelockEvents = result.logs.map((log) => {
     try {
