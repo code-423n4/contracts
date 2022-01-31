@@ -20,6 +20,7 @@ type TokenSaleConfig = {
   TOKEN_SALE_RECIPIENT: string;
   TOKEN_SALE_WHITELIST: typeof TOKEN_SALE_WHITELIST;
   RECIPIENT_AMOUNT: BN;
+  TOKEN_SALE_SUPPLY: BN;
 };
 
 const TOKEN_SALE_WHITELIST = [
@@ -64,12 +65,13 @@ export const allConfigs: {[key: number]: Config} = {
 export const tokenSaleConfigs: {[key: number]: TokenSaleConfig} = {
   // polygon mainnet
   137: {
-    TOKEN_SALE_START: 1644537600, // Friday, February 11, 2022 12:00:00 AM UTC
+    TOKEN_SALE_START: 1644451200, // Thursday, February 10, 2022 12:00:00 AM UTC
     TOKEN_SALE_DURATION: 10 * ONE_DAY,
     TOKEN_SALE_USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
     TOKEN_SALE_ARENA_PRICE: BN.from(30_000).mul(ONE_18).div(ONE_18), // 0.03 USDC * 1e18 / 1.0 ARENA
     TOKEN_SALE_RECIPIENT: '0x7f0049597056E37B4B1f887196E44CAc050D4863 ', // C4 Polygon multisig
     TOKEN_SALE_WHITELIST,
     RECIPIENT_AMOUNT: BN.from(1_750_000).mul(BN.from(10).pow(6)), // 1.75M USDC, rest to treasury
+    TOKEN_SALE_SUPPLY: BN.from(100_000_000).mul(ONE_18), // 100M ARENA tokens
   },
 };

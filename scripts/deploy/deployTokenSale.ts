@@ -88,7 +88,6 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
     config.TOKEN_SALE_WHITELIST.map(({buyer}) => buyer),
     config.TOKEN_SALE_WHITELIST.map(({arenaAmount}) => arenaAmount)
   );
-  const TOKEN_SALE_SUPPLY = config.TOKEN_SALE_WHITELIST.reduce((sum, el) => sum.add(el.arenaAmount), BN.from(`0`));
   // transfer token sale admin role to timelock
   await tokenSale.transferOwnership(timelock.address);
 
@@ -98,14 +97,19 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
   let values: string[] = ['0', '0'];
   let calldatas: string[] = [
     tokenLock.interface.encodeFunctionData('setTokenSale', [tokenSale.address]),
-    arenaToken.interface.encodeFunctionData('transfer', [tokenSale.address, TOKEN_SALE_SUPPLY]),
+    arenaToken.interface.encodeFunctionData('transfer', [tokenSale.address, config.TOKEN_SALE_SUPPLY]),
   ];
 
   const tx = await governor['propose(address[],uint256[],bytes[],string)'](
     targets,
     values,
     calldatas,
-    `Conduct Arena token sale!`
+    `"# C4IP-6: Transfer ARENA for token sale\nThis proposal takes action on the token sale approved by [C4IP-1\\]
+    \\(https://www.withtally.com/governance/eip155:137:0xc6eaDcC36aFcf1C430962506ad79145aD5140E58/proposal/61969381053746686972699442694032986733206504062025717191093241526145462208038) 
+    and the hiring of Code4 Corporation approved by [C4IP-3\\]\\(https://www.withtally.com/governance/eip155:137:0xc6eaDcC36aFcf1C430962506ad79145aD5140E58/proposal/46190911081008287731655546929165163023822387405966829437304548060152876868278) 
+    both of which are discussed in detail in [this forum post\\]\\(https://forum.code4rena.com/t/c4ip-1-constitution-dao-bootstrapping-reimbursements-token-sale/93)\n\n\n\n- 100,000,000 $ARENA tokens transferred to the [token sale contract\\]
+    \\(${tokenSale.address})\n\n- Tokens are sold at price of 1 ARENA = .03 USDC\n\n- Token sale details to be administered by Code4 Corporation\n\n- $1.75M of the initial sale will immediately be used to fund Code4 Corporation operations\n\n
+    - Remaining $1.25M proceeds will be transferred to the Code4rena treasury<br>\n\n\n<!-- -->\n\n"`
   );
   console.log(`proposal submitted: ${tx.hash}`);
   console.log(`waiting for block inclusion ...`);
