@@ -1,3 +1,5 @@
+import fetch from 'node-fetch';
+
 export async function getABIFromPolygonscan(address: string) {
   if (process.env.POLYGONSCAN_API_KEY == undefined) {
     console.log('Require polygonscan key, exiting...');

@@ -78,11 +78,26 @@ export const createAndExecuteProposal = async ({
     // get ABI
     let abi = await getABIFromPolygonscan(target);
     let iface = new ethers.utils.Interface(abi);
-    let events = result.logs.map((log) => iface.parseLog(log));
+    let events = result.logs.map((log) => {
+      try {
+        return iface.parseLog(log);
+      } catch (e) {
+        // no matching event
+      }
+    });
+    console.log(`### TARGET ${target} EVENTS ###`);
     console.log(events);
+    console.log(`###################################`);
   });
 
-  let timelockEvents = result.logs.map((log) => timeLock.interface.parseLog(log));
+  let timelockEvents = result.logs.map((log) => {
+    try {
+      return timeLock.interface.parseLog(log);
+    } catch (e) {
+      // no matching event
+    }
+  });
+  console.log(`### TIMELOCK EVENTS ###`);
   console.log(timelockEvents);
 
   return proposalId;
