@@ -13,6 +13,7 @@ import {
 } from '../typechain';
 
 export type DeployedContracts = {
+  governorV1: ArenaGovernor,
   governor: ArenaGovernor;
   timeLock: TimelockController;
   tokenLock: TokenLock;
@@ -23,12 +24,14 @@ export const getPolygonContracts = (signer: Signer): DeployedContracts => {
   if (!fs.existsSync(deploymentFilePath)) throw new Error(`File '${path.resolve(deploymentFilePath)}' does not exist.`);
 
   const contents = fs.readFileSync(deploymentFilePath, `utf8`);
+  let governorV1Address;
   let governorAddress;
   let arenaAddress;
   let timelockAddress;
   let tokenLockAddress;
   try {
     ({
+      governorV1: governorV1Address,
       governor: governorAddress,
       token: arenaAddress,
       tokenLock: tokenLockAddress,
@@ -43,6 +46,7 @@ export const getPolygonContracts = (signer: Signer): DeployedContracts => {
   if (!tokenLockAddress) throw new Error(`Deployment file did not include tokenLock address '${deploymentFilePath}'.`);
 
   return {
+    governorV1: ArenaGovernor__factory.connect(governorV1Address, signer),
     governor: ArenaGovernor__factory.connect(governorAddress, signer),
     arenaToken: ArenaToken__factory.connect(arenaAddress, signer),
     timeLock: TimelockController__factory.connect(timelockAddress, signer),
