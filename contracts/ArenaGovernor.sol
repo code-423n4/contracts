@@ -4,6 +4,7 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts/governance/Governor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
 import "@openzeppelin/contracts/governance/compatibility/GovernorCompatibilityBravo.sol";
+import "@openzeppelin/contracts/governance/extensions/GovernorPreventLateQuorum.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorVotes.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorTimelockControl.sol";
 
@@ -11,15 +12,19 @@ contract ArenaGovernor is
     Governor,
     GovernorSettings,
     GovernorCompatibilityBravo,
+    GovernorPreventLateQuorum,
     GovernorVotes,
     GovernorTimelockControl
 {
-    constructor(ERC20Votes _token, TimelockController _timelock)
+    constructor(IVotes _token, TimelockController _timelock)
         Governor("ArenaGovernor")
         GovernorSettings(
             1, /* 1 block */
-            302400, /* 1 week */
+            216_000, /* 5 days */
             50_000e18 /* minimum proposal threshold of 50_000 tokens */
+        )
+        GovernorPreventLateQuorum(
+            129_600 /* 3 days */
         )
         GovernorVotes(_token)
         GovernorTimelockControl(_timelock)
@@ -57,6 +62,15 @@ contract ArenaGovernor is
         return super.state(proposalId);
     }
 
+    function proposalDeadline(uint256 proposalId)
+        public
+        view
+        override(Governor, IGovernor, GovernorPreventLateQuorum)
+        returns (uint256)
+    {
+        return super.proposalDeadline(proposalId);
+    }
+
     function propose(
         address[] memory targets,
         uint256[] memory values,
@@ -92,6 +106,15 @@ contract ArenaGovernor is
         bytes32 descriptionHash
     ) internal override(Governor, GovernorTimelockControl) returns (uint256) {
         return super._cancel(targets, values, calldatas, descriptionHash);
+    }
+
+    function _castVote(
+        uint256 proposalId,
+        address account,
+        uint8 support,
+        string memory reason
+    ) internal override(Governor, GovernorPreventLateQuorum) returns (uint256) {
+        return super._castVote(proposalId, account, support, reason);
     }
 
     function _executor()

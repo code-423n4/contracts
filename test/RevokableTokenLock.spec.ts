@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {BigNumber} from 'ethers';
 import {ethers, waffle} from 'hardhat';
-import {IERC20, RevokableTokenLock} from '../typechain';
+import {TestERC20, RevokableTokenLock} from '../typechain';
 import {ZERO_ADDRESS, ONE_HOUR} from '../shared/Constants';
 import {setNextBlockTimeStamp, mineBlockAt} from '../shared/TimeManipulation';
 
