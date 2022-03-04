@@ -46,6 +46,11 @@ const config: HardhatUserConfig = {
       accounts: process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
   },
+  etherscan: {
+    apiKey: {
+      polygon: process.env.POLYGONSCAN_API_KEY == undefined ? '' : process.env.POLYGONSCAN_API_KEY,
+    }
+  },
   typechain: {
     outDir: 'typechain',
     target: 'ethers-v5',
@@ -53,9 +58,6 @@ const config: HardhatUserConfig = {
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
     currency: 'USD',
-  },
-  etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
   },
   mocha: {
     // 1 hour, essentially disabled auto timeout

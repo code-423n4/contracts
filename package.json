@@ -24,16 +24,16 @@
   },
   "homepage": "https://github.com/code-423n4/genesis#readme",
   "dependencies": {
-    "hardhat": "2.7.0",
+    "hardhat": "2.8.3",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@nomiclabs/hardhat-ethers": "^2.0.3",
-    "@nomiclabs/hardhat-etherscan": "2.1.7",
+    "@nomiclabs/hardhat-ethers": "^2.0.4",
+    "@nomiclabs/hardhat-etherscan": "3.0.0",
     "@nomiclabs/hardhat-waffle": "^2.0.0",
     "@openzeppelin/contracts": "^4.4.0",
-    "@typechain/ethers-v5": "^7.0.1",
-    "@typechain/hardhat": "^2.3.0",
+    "@typechain/ethers-v5": "^9.0.0",
+    "@typechain/hardhat": "^4.0.0",
     "@types/chai": "^4.2.21",
     "@types/lodash": "^4.14.178",
     "@types/mocha": "^9.0.0",
@@ -60,7 +60,7 @@
     "solidity-coverage": "^0.7.16",
     "ts-generator": "^0.1.1",
     "ts-node": "^10.4.0",
-    "typechain": "^5.1.2",
-    "typescript": "^4.3.5"
+    "typechain": "^7.0.0",
+    "typescript": "^4.5.5"
   }
 }

@@ -19,29 +19,22 @@ type TokenSaleConfig = {
   TOKEN_SALE_ARENA_PRICE: BN;
   TOKEN_SALE_RECIPIENT: string;
   TOKEN_SALE_WHITELIST: typeof TOKEN_SALE_WHITELIST;
+  RECIPIENT_AMOUNT: BN;
+  TOKEN_SALE_SUPPLY: BN;
 };
 
 const TOKEN_SALE_WHITELIST = [
-  {buyer: '0x0f4Aeb1847B7F1a735f4a5Af7E8C299b793c1a9A', arenaAmount: BN.from(`10000`).mul(ONE_18)},
-  {buyer: '0x3Ab0029e1C4515134464b267557cB80A39902699', arenaAmount: BN.from(`10001`).mul(ONE_18)},
-  {buyer: '0x4F3F7ca7E91D869180EBbA55e4322845a8Dc6862', arenaAmount: BN.from(`10002`).mul(ONE_18)},
-  {buyer: '0x5dcEb6f4dc5b64Af6271A5Ab3297DbE3C01dd57B', arenaAmount: BN.from(`10003`).mul(ONE_18)},
-  {buyer: '0x62641eAE546835813B56EC7b544756A532275Dd3', arenaAmount: BN.from(`10004`).mul(ONE_18)},
-  {buyer: '0x670f9e8B37d5816c2eB93A1D94841C66652a8E26', arenaAmount: BN.from(`10005`).mul(ONE_18)},
-  {buyer: '0x691Cbab55CC1806d29994784Ba9d9e679c03f164', arenaAmount: BN.from(`10006`).mul(ONE_18)},
-  {buyer: '0x697ccd97C8419EBba7347CEF03a0CD02804EbF54', arenaAmount: BN.from(`10007`).mul(ONE_18)},
-  {buyer: '0x6c422839E7EceDb6d2A86F3F2bFd03aDd154Fc27', arenaAmount: BN.from(`10008`).mul(ONE_18)},
-  {buyer: '0x7C0fb88c87c30eBF70340E25fe47763e53b907cF', arenaAmount: BN.from(`10009`).mul(ONE_18)},
-  {buyer: '0x8498EAb53e03E3143d77B2303eDBdAC6C9041D33', arenaAmount: BN.from(`10010`).mul(ONE_18)},
-  {buyer: '0x8D31BAC0870e323354eAF6F98277860772FFB2d4', arenaAmount: BN.from(`10011`).mul(ONE_18)},
-  {buyer: '0xA432F83d8054F5F859cAcb86574baC5e07DD6529', arenaAmount: BN.from(`10012`).mul(ONE_18)},
-  {buyer: '0xD3488b8C87416946D82CC957178B0863A1F089b2', arenaAmount: BN.from(`10013`).mul(ONE_18)},
-  {buyer: '0xD5388291EAbe96b56069440C97046791E2F72573', arenaAmount: BN.from(`10014`).mul(ONE_18)},
-  {buyer: '0xF20eb7eAf52712EA0Aa80467741f34E6b0dB18F8', arenaAmount: BN.from(`10015`).mul(ONE_18)},
-  {buyer: '0xa1fA3C686C9c4E5e8407b32B67191B079a65ffD2', arenaAmount: BN.from(`10016`).mul(ONE_18)},
-  {buyer: '0xbB79597641483Ed96BCE9fc24b4D63F720898b8A', arenaAmount: BN.from(`10017`).mul(ONE_18)},
-  {buyer: '0xe552C6A88E71B2A5069Dec480507F54321Dc65F3', arenaAmount: BN.from(`10018`).mul(ONE_18)},
-  {buyer: '0xf4290941dBc8b31c277E30deFF3fC59979FC6757', arenaAmount: BN.from(`10019`).mul(ONE_18)},
+  {buyer: '0x1aa1F9f80f4c5dCe34d0f4faB4F66AAF562330bd', arenaAmount: BN.from(33_333_333).mul(ONE_18)},
+  {buyer: '0x3a5c572aE7a806c661970058450dC90D9eF0f353', arenaAmount: BN.from(13_333_333).mul(ONE_18)},
+  {buyer: '0xcfc50541c3dEaf725ce738EF87Ace2Ad778Ba0C5', arenaAmount: BN.from(10_166_666).mul(ONE_18)},
+  {buyer: '0xC02ad7b9a9121fc849196E844DC869D2250DF3A6', arenaAmount: BN.from(8_333_333).mul(ONE_18)},
+  {buyer: '0xCfCA53C4b6d3f763969c9A9C36DBCAd61F11F36D', arenaAmount: BN.from(6_666_666).mul(ONE_18)},
+  {buyer: '0x636EDa86F6EC324347Bd560c1045192586b9DEE8', arenaAmount: BN.from(6_666_666).mul(ONE_18)},
+  {buyer: '0xDbBB1bD4cbDA95dd2f1477be139C3D6cb9d2B349', arenaAmount: BN.from(3_333_333).mul(ONE_18)},
+  {buyer: '0x4dA94e682326BD14997D1E1c62350654D8e44c5d', arenaAmount: BN.from(2_500_000).mul(ONE_18)},
+  {buyer: '0x20392b9607dc8cC49BEa5B7B90E65d6251617538', arenaAmount: BN.from(1_166_666).mul(ONE_18)},
+  {buyer: '0x83b23E8e5da74fD3f3E5471865FC778d9c843df0', arenaAmount: BN.from(833_333).mul(ONE_18)},
+  {buyer: '0x7fCAf93cc92d51c490FFF701fb2C6197497a80db', arenaAmount: BN.from(833_333).mul(ONE_18)},
 ];
 
 export const allConfigs: {[key: number]: Config} = {
@@ -72,11 +65,13 @@ export const allConfigs: {[key: number]: Config} = {
 export const tokenSaleConfigs: {[key: number]: TokenSaleConfig} = {
   // polygon mainnet
   137: {
-    TOKEN_SALE_START: Math.floor(new Date(`2022-01-12T00:00:00.000Z`).getTime() / 1000),
-    TOKEN_SALE_DURATION: 14 * ONE_DAY,
+    TOKEN_SALE_START: 1644451200, // Thursday, February 10, 2022 12:00:00 AM UTC
+    TOKEN_SALE_DURATION: 10 * ONE_DAY,
     TOKEN_SALE_USDC: '0x2791bca1f2de4661ed88a30c99a7a9449aa84174',
     TOKEN_SALE_ARENA_PRICE: BN.from(30_000).mul(ONE_18).div(ONE_18), // 0.03 USDC * 1e18 / 1.0 ARENA
-    TOKEN_SALE_RECIPIENT: '0x670f9e8B37d5816c2eB93A1D94841C66652a8E26', // TODO: change to intended recipient
-    TOKEN_SALE_WHITELIST, // TODO: update value
+    TOKEN_SALE_RECIPIENT: '0x7f0049597056E37B4B1f887196E44CAc050D4863', // C4 Polygon multisig
+    TOKEN_SALE_WHITELIST,
+    RECIPIENT_AMOUNT: BN.from(1_750_000).mul(BN.from(10).pow(6)), // 1.75M USDC, rest to treasury
+    TOKEN_SALE_SUPPLY: BN.from(100_000_000).mul(ONE_18), // 100M ARENA tokens
   },
 };

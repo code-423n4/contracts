@@ -14,6 +14,7 @@ import {
 
 import {allConfigs, tokenSaleConfigs} from './config';
 import {HardhatRuntimeEnvironment} from 'hardhat/types';
+import {verifyContract} from './verify';
 
 let proposerAddress: string;
 let tokenSale: TokenSale;
@@ -77,7 +78,8 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
     config.TOKEN_SALE_ARENA_PRICE,
     config.TOKEN_SALE_RECIPIENT,
     tokenLock.address,
-    allConfigs[networkId].VEST_DURATION
+    allConfigs[networkId].VEST_DURATION,
+    config.RECIPIENT_AMOUNT
   );
   await tokenSale.deployed();
   console.log(`tokenSale address: ${tokenSale.address}`);
@@ -87,7 +89,6 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
     config.TOKEN_SALE_WHITELIST.map(({buyer}) => buyer),
     config.TOKEN_SALE_WHITELIST.map(({arenaAmount}) => arenaAmount)
   );
-  const TOKEN_SALE_SUPPLY = config.TOKEN_SALE_WHITELIST.reduce((sum, el) => sum.add(el.arenaAmount), BN.from(`0`));
   // transfer token sale admin role to timelock
   await tokenSale.transferOwnership(timelock.address);
 
@@ -97,14 +98,14 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
   let values: string[] = ['0', '0'];
   let calldatas: string[] = [
     tokenLock.interface.encodeFunctionData('setTokenSale', [tokenSale.address]),
-    arenaToken.interface.encodeFunctionData('transfer', [tokenSale.address, TOKEN_SALE_SUPPLY]),
+    arenaToken.interface.encodeFunctionData('transfer', [tokenSale.address, config.TOKEN_SALE_SUPPLY]),
   ];
 
   const tx = await governor['propose(address[],uint256[],bytes[],string)'](
     targets,
     values,
     calldatas,
-    `Conduct Arena token sale!`
+    `# C4IP-6: Transfer ARENA tokens for token sale\nThis proposal takes action on the token sale approved by [C4IP-1](<https://www.withtally.com/governance/eip155:137:0xc6eaDcC36aFcf1C430962506ad79145aD5140E58/proposal/61969381053746686972699442694032986733206504062025717191093241526145462208038>) and the hiring of Code4 Corporation approved by [C4IP-3](<https://www.withtally.com/governance/eip155:137:0xc6eaDcC36aFcf1C430962506ad79145aD5140E58/proposal/46190911081008287731655546929165163023822387405966829437304548060152876868278>) both of which are discussed in detail in [this forum post](<https://forum.code4rena.com/t/c4ip-1-constitution-dao-bootstrapping-reimbursements-token-sale/93>)<br>\n\n- 100,000,000 $ARENA tokens transferred to the [token sale contract](<https://polygonscan.com/address/0xD0e7d5a2220e32914540D97A6D0548658050180b>)\n\n- Tokens are sold at price of 1 ARENA = .03 USDC\n\n- Token sale details to be administered by Code4 Corporation\n\n- $1.75M of the initial sale will immediately be used to fund Code4 Corporation operations\n\n- Remaining $1.25M proceeds will be transferred to the Code4rena treasury\n\n\n<!-- -->\n\n`
   );
   console.log(`proposal submitted: ${tx.hash}`);
   console.log(`waiting for block inclusion ...`);
@@ -116,12 +117,23 @@ export async function deployTokenSale(hre: HardhatRuntimeEnvironment) {
   let exportJson = JSON.stringify(addressesToExport, null, 2);
   fs.writeFileSync(deploymentFilePath, exportJson);
 
+  console.log(`Verifying tokenSale contract...`);
+  await verifyContract(hre, tokenSale.address, [
+    config.TOKEN_SALE_USDC,
+    arenaToken.address,
+    config.TOKEN_SALE_START,
+    config.TOKEN_SALE_DURATION,
+    config.TOKEN_SALE_ARENA_PRICE,
+    config.TOKEN_SALE_RECIPIENT,
+    tokenLock.address,
+    allConfigs[networkId].VEST_DURATION,
+    config.RECIPIENT_AMOUNT,
+  ]);
+
   /////////////////////////////////
   // ACCESS CONTROL VERIFICATION //
   /////////////////////////////////
   console.log('verifying access control settings...');
-  // check tokenSale's tokenlock has been set
-  expect(await tokenSale.tokenLock()).to.be.eq(tokenLock.address);
   // tokenSale's owner should be timelock
   expect(await tokenSale.owner()).to.be.eq(timelock.address);
 

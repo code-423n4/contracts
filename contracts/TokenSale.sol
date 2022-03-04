@@ -4,7 +4,7 @@ pragma solidity 0.8.10;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import "../interfaces/IRevokableTokenLock.sol";
+import "../interfaces/ITokenLockVestReader.sol";
 
 /**
  * @dev Sells a token at a predetermined price to whitelisted buyers. The number of tokens each address can buy can be regulated.
@@ -15,15 +15,17 @@ contract TokenSale is Ownable {
     /// token to give out (ARENA)
     ERC20 public immutable tokenOut;
     /// time when tokens can be first purchased
-    uint64 public immutable saleStart;
+    uint64 public saleStart;
     /// duration of the token sale, cannot purchase afterwards
     uint64 public immutable saleDuration;
-    /// address receiving the proceeds of the sale
-    address internal saleRecipient;
+    /// address receiving a defined portion proceeds of the sale
+    address internal immutable saleRecipient;
+    /// amount receivable by sale recipient
+    uint256 public remainingSaleRecipientAmount;
     /// vesting contract
-    IRevokableTokenLock public tokenLock;
+    ITokenLockVestReader public immutable tokenLock;
     /// vesting duration
-    uint256 public vestDuration;
+    uint256 public immutable vestDuration;
 
     /// how many `tokenOut`s each address may buy
     mapping(address => uint256) public whitelistedBuyersAmount;
@@ -31,6 +33,7 @@ contract TokenSale is Ownable {
     /// i.e., it should be provided as tokenInAmount * 1e18 / tokenOutAmount
     uint256 public immutable tokenOutPrice;
 
+    event BuyerWhitelisted(address indexed buyer, uint256 amount);
     event Sale(address indexed buyer, uint256 amountIn, uint256 amountOut);
 
     /**
@@ -40,9 +43,10 @@ contract TokenSale is Ownable {
      * @param _saleStart The time when tokens can be first purchased
      * @param _saleDuration The duration of the token sale
      * @param _tokenOutPrice The tokenIn per tokenOut price. precision should be in tokenInDecimals - tokenOutDecimals + 18
-     * @param _saleRecipient The address receiving the proceeds of the sale
+     * @param _saleRecipient The address receiving a portion proceeds of the sale
      * @param _tokenLock The contract in which _tokenOut will be vested in
      * @param _vestDuration Token vesting duration
+     * @param _saleRecipientAmount Amount receivable by sale recipient
      */
     constructor(
         ERC20 _tokenIn,
@@ -52,7 +56,8 @@ contract TokenSale is Ownable {
         uint256 _tokenOutPrice,
         address _saleRecipient,
         address _tokenLock,
-        uint256 _vestDuration
+        uint256 _vestDuration,
+        uint256 _saleRecipientAmount
     ) {
         require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
         require(_saleDuration > 0, "TokenSale: the sale duration must not be zero");
@@ -70,9 +75,9 @@ contract TokenSale is Ownable {
         saleDuration = _saleDuration;
         tokenOutPrice = _tokenOutPrice;
         saleRecipient = _saleRecipient;
-
-        tokenLock = IRevokableTokenLock(_tokenLock);
+        tokenLock = ITokenLockVestReader(_tokenLock);
         vestDuration = _vestDuration;
+        remainingSaleRecipientAmount = _saleRecipientAmount;
     }
 
     /**
@@ -86,10 +91,31 @@ contract TokenSale is Ownable {
         require(_tokenOutAmount > 0, "TokenSale: non-whitelisted purchaser or have already bought");
         whitelistedBuyersAmount[msg.sender] = 0;
         tokenInAmount_ = (_tokenOutAmount * tokenOutPrice) / 1e18;
-        require(
-            tokenIn.transferFrom(msg.sender, saleRecipient, tokenInAmount_),
-            "TokenSale: tokenIn transfer failed"
-        );
+
+        // saleRecipient will receive proceeds first, until fully allocated
+        if (tokenInAmount_ <= remainingSaleRecipientAmount) {
+            remainingSaleRecipientAmount -= tokenInAmount_;
+            require(
+                tokenIn.transferFrom(msg.sender, saleRecipient, tokenInAmount_),
+                "TokenSale: tokenIn transfer failed"
+            );
+        } else {
+            // saleRecipient will either be receiving or have received full allocation
+            // portion will go to owner
+            uint256 ownerAmount = tokenInAmount_ - remainingSaleRecipientAmount;
+            require(
+                tokenIn.transferFrom(msg.sender, owner(), ownerAmount),
+                "TokenSale: tokenIn transfer failed"
+            );
+            if (remainingSaleRecipientAmount > 0) {
+                uint256 saleRecipientAmount = remainingSaleRecipientAmount;
+                remainingSaleRecipientAmount = 0;
+                require(
+                    tokenIn.transferFrom(msg.sender, saleRecipient, saleRecipientAmount),
+                    "TokenSale: tokenIn transfer failed"
+                );
+            }
+        }
 
         uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
         uint256 remainingAmount;
@@ -103,7 +129,7 @@ contract TokenSale is Ownable {
             "TokenSale: tokenOut transfer failed"
         );
 
-        // if we use same tokenLock instance as airdrop, we make sure that
+        // we use same tokenLock instance as airdrop, we make sure that
         // the claimers and buyers are distinct to not reinitialize vesting
         tokenLock.setupVesting(
             msg.sender,
@@ -131,18 +157,42 @@ contract TokenSale is Ownable {
             _buyers.length == _newTokenOutAmounts.length,
             "TokenSale: parameter length mismatch"
         );
-        require(block.timestamp < saleStart, "TokenSale: sale already started");
+        require(
+            block.timestamp < saleStart || block.timestamp > saleStart + saleDuration,
+            "TokenSale: ongoing sale"
+        );
 
         for (uint256 i = 0; i < _buyers.length; i++) {
+            // Does not cover the case that the buyer has not claimed his airdrop
+            // So it will have to be somewhat manually checked
+            ITokenLockVestReader.VestingParams memory vestParams = tokenLock.vesting(_buyers[i]);
+            require(vestParams.unlockBegin == 0, "TokenSale: buyer has existing vest schedule");
             whitelistedBuyersAmount[_buyers[i]] = _newTokenOutAmounts[i];
+            emit BuyerWhitelisted(_buyers[i], _newTokenOutAmounts[i]);
         }
+    }
+
+    /**
+     * @dev Modifies the start time of the sale. Enables a new sale to be created assuming one is not ongoing
+     * @dev A new list of buyers and tokenAmounts can be done by calling changeWhiteList()
+     * @param _newSaleStart The new start time of the token sale
+     */
+    function setNewSaleStart(uint64 _newSaleStart) external {
+        require(msg.sender == owner() || msg.sender == saleRecipient, "TokenSale: not authorized");
+        // can only change if there is no ongoing sale
+        require(
+            block.timestamp < saleStart || block.timestamp > saleStart + saleDuration,
+            "TokenSale: ongoing sale"
+        );
+        require(block.timestamp < _newSaleStart, "TokenSale: new sale too early");
+        saleStart = _newSaleStart;
     }
 
     /**
      * @dev Transfers out any remaining `tokenOut` after the sale to owner
      */
     function sweepTokenOut() external {
-        require(saleStart + saleDuration < block.timestamp, "TokenSale: sale did not end yet");
+        require(saleStart + saleDuration < block.timestamp, "TokenSale: ongoing sale");
 
         uint256 tokenOutBalance = tokenOut.balanceOf(address(this));
         require(tokenOut.transfer(owner(), tokenOutBalance), "TokenSale: transfer failed");

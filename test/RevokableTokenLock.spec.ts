@@ -7,17 +7,16 @@ import {setNextBlockTimeStamp, mineBlockAt} from '../shared/TimeManipulation';
 
 const {loadFixture} = waffle;
 
-let token: IERC20;
+let token: TestERC20;
 let revokableTokenLock: RevokableTokenLock;
 
 describe('RevokableTokenLock', async () => {
   const [owner, revoker, recipient, other] = waffle.provider.getWallets();
   const amount = ethers.utils.parseEther('20');
 
-  // TODO: maybe create shared fixtures that can be imported by the test files
   async function fixture() {
     const TokenFactory = await ethers.getContractFactory('TestERC20');
-    const token = (await TokenFactory.deploy('TEST', 'TEST')) as IERC20;
+    const token = await TokenFactory.deploy('TEST', 'TEST');
     const RevokableTokenLockFactory = await ethers.getContractFactory('RevokableTokenLock');
     const revokableTokenLock = (await RevokableTokenLockFactory.deploy(
       token.address,
