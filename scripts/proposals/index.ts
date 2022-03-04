@@ -8,3 +8,10 @@ task('propose', 'propose transfer')
     const {transferProposal} = await import('./transfer');
     await transferProposal(json, hre);
   });
+
+task('simulateExistingProposal', 'simulates an existing proposal (by cloning it)')
+  .addParam('id', 'Proposal ID')
+  .setAction(async ({id}, hre) => {
+    const {simulateExistingProposal} = await import('./simulateExistingProposal');
+    await simulateExistingProposal(id, hre);
+  });

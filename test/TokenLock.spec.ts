@@ -2,8 +2,8 @@ import {expect} from 'chai';
 import chai from 'chai';
 import hre, {ethers, waffle} from 'hardhat';
 import {IERC20, TokenLock} from '../typechain';
-import {MAX_UINT, ONE, ONE_DAY, ONE_YEAR, ONE_18, ZERO, ZERO_ADDRESS} from './shared/Constants';
-import {mineBlockAt, resetNetwork, setNextBlockTimeStamp} from './shared/TimeManipulation';
+import {MAX_UINT, ONE, ONE_DAY, ONE_YEAR, ONE_18, ZERO, ZERO_ADDRESS} from '../shared/Constants';
+import {mineBlockAt, resetNetwork, setNextBlockTimeStamp} from '../shared/TimeManipulation';
 
 const {solidity, loadFixture} = waffle;
 chai.use(solidity);
