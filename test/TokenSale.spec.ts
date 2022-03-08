@@ -2,7 +2,7 @@ import {expect} from 'chai';
 import chai from 'chai';
 import {ethers, waffle} from 'hardhat';
 import {BigNumber as BN} from 'ethers';
-import {IERC20, RevokableTokenLock, TokenSale} from '../typechain';
+import {TestERC20, RevokableTokenLock, TokenSale} from '../typechain';
 import {ONE_DAY, ONE_18, MAX_UINT, ONE_YEAR} from '../shared/Constants';
 import {setNextBlockTimeStamp, resetNetwork} from '../shared/TimeManipulation';
 

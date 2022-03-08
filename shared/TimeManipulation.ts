@@ -16,16 +16,18 @@ export const increaseNextBlockTime = async (seconds: number) => {
 
 export const setNextBlockNumber = async (blockNumber: number) => {
   let currentBlock = await getHeadBlockNumber();
-  for (; currentBlock < blockNumber; currentBlock++) {
-    await hre.network.provider.send('evm_increaseTime', [Math.round(POLYGON_AVERAGE_BLOCK_TIME)]);
-    await hre.network.provider.send('evm_mine', []);
-  }
+  await hre.network.provider.send("hardhat_mine", ['0x' + (blockNumber - currentBlock).toString(16), POLYGON_AVERAGE_BLOCK_TIME]);
 };
 
 export const mineBlockAt = async (timestamp: number) => {
   await hre.network.provider.send('evm_setNextBlockTimestamp', [timestamp]);
   return hre.network.provider.send('evm_mine', []);
 };
+
+// default 2s per block
+export const mineBlocks = async (numBlocks: string, interval: string = POLYGON_AVERAGE_BLOCK_TIME) => {
+  await hre.network.provider.send("hardhat_mine", [numBlocks, interval]);
+}
 
 export const resetNetwork = async () => {
   return hre.network.provider.request({

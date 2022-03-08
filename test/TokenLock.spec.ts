@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import chai from 'chai';
-import hre, {ethers, waffle} from 'hardhat';
-import {IERC20, TokenLock} from '../typechain';
+import {ethers, waffle} from 'hardhat';
+import {TestERC20, TokenLock} from '../typechain';
 import {MAX_UINT, ONE, ONE_DAY, ONE_YEAR, ONE_18, ZERO, ZERO_ADDRESS} from '../shared/Constants';
 import {mineBlockAt, resetNetwork, setNextBlockTimeStamp} from '../shared/TimeManipulation';
 
@@ -122,11 +122,12 @@ describe('TokenLock', async () => {
     });
 
     it('should revert if lock() is called without sufficient balance or allowance', async () => {
+      await expect(tokenLock.connect(admin).lock(user.address, ONE)).to.be.revertedWith(
+        'ERC20: insufficient allowance'
+      );
+      await token.connect(user).approve(tokenLock.address, ONE);
       await expect(tokenLock.connect(user).lock(user.address, ONE)).to.be.revertedWith(
         'ERC20: transfer amount exceeds balance'
-      );
-      await expect(tokenLock.connect(admin).lock(user.address, ONE)).to.be.revertedWith(
-        'ERC20: transfer amount exceeds allowance'
       );
     });
 
