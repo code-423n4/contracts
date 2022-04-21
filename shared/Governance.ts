@@ -63,6 +63,12 @@ export const createAndExecuteProposal = async ({
 
   for (let i = 0; i < targets.length; i++) {
     let abi = await getABIFromPolygonscan(targets[i]);
+    // is proxy contract, need to fetch implementation
+    if (JSON.stringify(abi).includes("implementation")) {
+      let proxy = new ethers.Contract(targets[i], abi, user);
+      console.log(await proxy.implementation())
+      abi = await getABIFromPolygonscan(await proxy.implementation());
+    }
     let iface = new ethers.utils.Interface(abi);
     let events = result.logs.map((log) => {
       try {
