@@ -117,29 +117,22 @@ contract TokenSale is Ownable {
             }
         }
 
-        uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
-        uint256 remainingAmount;
-        unchecked {
-            // this subtraction does not underflow as claimableAmount is a percentage on _tokenOutAmount
-            remainingAmount = _tokenOutAmount - claimableAmount;
-        }
-
         require(
-            tokenOut.transfer(msg.sender, claimableAmount),
+            tokenOut.transfer(msg.sender, _tokenOutAmount),
             "TokenSale: tokenOut transfer failed"
         );
 
         // we use same tokenLock instance as airdrop, we make sure that
         // the claimers and buyers are distinct to not reinitialize vesting
-        tokenLock.setupVesting(
-            msg.sender,
-            block.timestamp,
-            block.timestamp,
-            block.timestamp + vestDuration
-        );
-        // approve TokenLock for token transfer
-        require(tokenOut.approve(address(tokenLock), remainingAmount), "Approve failed");
-        tokenLock.lock(msg.sender, remainingAmount);
+        // tokenLock.setupVesting(
+        //     msg.sender,
+        //     block.timestamp,
+        //     block.timestamp,
+        //     block.timestamp + vestDuration
+        // );
+        // // approve TokenLock for token transfer
+        // require(tokenOut.approve(address(tokenLock), remainingAmount), "Approve failed");
+        // tokenLock.lock(msg.sender, remainingAmount);
 
         emit Sale(msg.sender, tokenInAmount_, _tokenOutAmount);
     }
