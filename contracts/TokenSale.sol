@@ -23,9 +23,9 @@ contract TokenSale is Ownable {
     /// amount receivable by sale recipient
     uint256 public remainingSaleRecipientAmount;
     /// vesting contract
-    ITokenLockVestReader public immutable tokenLock;
+    // ITokenLockVestReader public immutable tokenLock;
     /// vesting duration
-    uint256 public immutable vestDuration;
+    // uint256 public immutable vestDuration;
 
     /// how many `tokenOut`s each address may buy
     mapping(address => uint256) public whitelistedBuyersAmount;
@@ -44,8 +44,6 @@ contract TokenSale is Ownable {
      * @param _saleDuration The duration of the token sale
      * @param _tokenOutPrice The tokenIn per tokenOut price. precision should be in tokenInDecimals - tokenOutDecimals + 18
      * @param _saleRecipient The address receiving a portion proceeds of the sale
-     * @param _tokenLock The contract in which _tokenOut will be vested in
-     * @param _vestDuration Token vesting duration
      * @param _saleRecipientAmount Amount receivable by sale recipient
      */
     constructor(
@@ -55,19 +53,19 @@ contract TokenSale is Ownable {
         uint64 _saleDuration,
         uint256 _tokenOutPrice,
         address _saleRecipient,
-        address _tokenLock,
-        uint256 _vestDuration,
+        // address _tokenLock,
+        // uint256 _vestDuration,
         uint256 _saleRecipientAmount
     ) {
         require(block.timestamp <= _saleStart, "TokenSale: start date may not be in the past");
         require(_saleDuration > 0, "TokenSale: the sale duration must not be zero");
         require(_tokenOutPrice > 0, "TokenSale: the price must not be zero");
-        require(_vestDuration > 0, "TokenSale: the vest duration must not be zero");
+        // require(_vestDuration > 0, "TokenSale: the vest duration must not be zero");
         require(
             _saleRecipient != address(0) && _saleRecipient != address(this),
             "TokenSale: sale recipient should not be zero or this"
         );
-        require(_tokenLock != address(0), "Address cannot be 0x");
+        // require(_tokenLock != address(0), "Address cannot be 0x");
 
         tokenIn = _tokenIn;
         tokenOut = _tokenOut;
@@ -75,8 +73,8 @@ contract TokenSale is Ownable {
         saleDuration = _saleDuration;
         tokenOutPrice = _tokenOutPrice;
         saleRecipient = _saleRecipient;
-        tokenLock = ITokenLockVestReader(_tokenLock);
-        vestDuration = _vestDuration;
+        // tokenLock = ITokenLockVestReader(_tokenLock);
+        // vestDuration = _vestDuration;
         remainingSaleRecipientAmount = _saleRecipientAmount;
     }
 
@@ -117,29 +115,22 @@ contract TokenSale is Ownable {
             }
         }
 
-        uint256 claimableAmount = (_tokenOutAmount * 2_000) / 10_000;
-        uint256 remainingAmount;
-        unchecked {
-            // this subtraction does not underflow as claimableAmount is a percentage on _tokenOutAmount
-            remainingAmount = _tokenOutAmount - claimableAmount;
-        }
-
         require(
-            tokenOut.transfer(msg.sender, claimableAmount),
+            tokenOut.transfer(msg.sender, _tokenOutAmount),
             "TokenSale: tokenOut transfer failed"
         );
 
         // we use same tokenLock instance as airdrop, we make sure that
         // the claimers and buyers are distinct to not reinitialize vesting
-        tokenLock.setupVesting(
-            msg.sender,
-            block.timestamp,
-            block.timestamp,
-            block.timestamp + vestDuration
-        );
-        // approve TokenLock for token transfer
-        require(tokenOut.approve(address(tokenLock), remainingAmount), "Approve failed");
-        tokenLock.lock(msg.sender, remainingAmount);
+        // tokenLock.setupVesting(
+        //     msg.sender,
+        //     block.timestamp,
+        //     block.timestamp,
+        //     block.timestamp + vestDuration
+        // );
+        // // approve TokenLock for token transfer
+        // require(tokenOut.approve(address(tokenLock), remainingAmount), "Approve failed");
+        // tokenLock.lock(msg.sender, remainingAmount);
 
         emit Sale(msg.sender, tokenInAmount_, _tokenOutAmount);
     }
@@ -165,8 +156,8 @@ contract TokenSale is Ownable {
         for (uint256 i = 0; i < _buyers.length; i++) {
             // Does not cover the case that the buyer has not claimed his airdrop
             // So it will have to be somewhat manually checked
-            ITokenLockVestReader.VestingParams memory vestParams = tokenLock.vesting(_buyers[i]);
-            require(vestParams.unlockBegin == 0, "TokenSale: buyer has existing vest schedule");
+            // ITokenLockVestReader.VestingParams memory vestParams = tokenLock.vesting(_buyers[i]);
+            // require(vestParams.unlockBegin == 0, "TokenSale: buyer has existing vest schedule");
             whitelistedBuyersAmount[_buyers[i]] = _newTokenOutAmounts[i];
             emit BuyerWhitelisted(_buyers[i], _newTokenOutAmounts[i]);
         }
