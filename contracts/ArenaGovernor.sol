@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.10;
+pragma solidity 0.8.19;
 
 import "@openzeppelin/contracts/governance/Governor.sol";
 import "@openzeppelin/contracts/governance/extensions/GovernorSettings.sol";
@@ -47,7 +47,7 @@ contract ArenaGovernor is
     function getVotes(address account, uint256 blockNumber)
         public
         view
-        override(IGovernor, GovernorVotes)
+        override(IGovernor, Governor)
         returns (uint256)
     {
         return super.getVotes(account, blockNumber);
@@ -78,6 +78,15 @@ contract ArenaGovernor is
         string memory description
     ) public override(Governor, GovernorCompatibilityBravo, IGovernor) returns (uint256) {
         return super.propose(targets, values, calldatas, description);
+    }
+
+    function cancel(
+        address[] memory targets,
+        uint256[] memory values,
+        bytes[] memory calldatas,
+        bytes32 descriptionHash
+    ) public override(IGovernor, Governor, GovernorCompatibilityBravo) returns (uint256) {
+        return super.cancel(targets, values, calldatas, descriptionHash);
     }
 
     function proposalThreshold()
@@ -112,9 +121,10 @@ contract ArenaGovernor is
         uint256 proposalId,
         address account,
         uint8 support,
-        string memory reason
+        string memory reason,
+        bytes memory params
     ) internal override(Governor, GovernorPreventLateQuorum) returns (uint256) {
-        return super._castVote(proposalId, account, support, reason);
+        return super._castVote(proposalId, account, support, reason, params);
     }
 
     function _executor()

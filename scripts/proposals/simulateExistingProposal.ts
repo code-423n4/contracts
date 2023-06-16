@@ -2,6 +2,9 @@ import {HardhatRuntimeEnvironment} from 'hardhat/types';
 import {getPolygonContracts, getForkParams} from '../../shared/Forking';
 import {createAndExecuteProposal} from '../../shared/Governance';
 
+// Eg commands:
+// nvm use 16.16
+// yarn hardhat simulateExistingProposal --id 93022684150159074125678303578919779638229937046863883601906649520845717660577
 export async function simulateExistingProposal(proposalId: string, hre: HardhatRuntimeEnvironment) {
   const [user] = await hre.ethers.getSigners();
   const deployment = getPolygonContracts(user);
